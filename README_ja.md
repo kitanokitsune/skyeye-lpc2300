@@ -23,7 +23,7 @@
 **bin/** ディレクトリに完成した実行ファイル **skyeye.exe** があります。
 もし、自分でビルドする場合はMinGW/MSYS環境が必要です。MSYSシェル上で以下のコマンドを実行してください。
 
-* **cd src*
+* **cd src**
 * **./configure --enable-lcd=no LDFLAGS="-static -static-libstdc++ -static-libgcc -s"**
 * **make**
 
