@@ -13,8 +13,8 @@ The aim of this project is to support NXP's LPC23xx, especially **CQ-FRK-NXP-ARM
 ### For Linux
 just type **./configure** and **make**.
 ### For MS-Windows
-use **skyeye.exe** in **bin/** directory.
-If you want to build yourself, you need MinGW/MSYS environment. Type the following commands on MSYS shell.
+Simply use **skyeye.exe** in **bin/** directory.
+Or, if you want to build yourself, you need MinGW/MSYS environment. Type the following commands on MSYS shell.
  **./configure --enable-lcd=no LDFLAGS="-static -static-libstdc++ -static-libgcc -s"**
  **make**
 
