@@ -3,25 +3,25 @@
 
 
 ## What is this
-これは[SkyEye ARM simulator](https://sourceforge.net/projects/skyeye/)のブランチです。ベースのSkyEyeのバージョンは[1.2.6_rc1](https://sourceforge.net/projects/skyeye/files/skyeye/skyeye-1.2.6_rc1/)です。
+�����[SkyEye ARM simulator](https://sourceforge.net/projects/skyeye/)�Υ֥����Ǥ����١�����SkyEye�ΥС�������[1.2.6_rc1](https://sourceforge.net/projects/skyeye/files/skyeye/skyeye-1.2.6_rc1/)�Ǥ���
 
-このプロジェクトの目的はSkyEyeにNXP LPC23xx（特に**CQ-FRK-NXP-ARM**基板）のサポートを追加することです。
+���Υץ��������Ȥ���Ū��SkyEye��NXP LPC23xx���ä�**CQ-FRK-NXP-ARM**���ġˤΥ��ݡ��Ȥ��ɲä��뤳�ȤǤ���
 
-現在、以下の機能が追加されています。
-* UART(0/1/2/3) および Rx/Tx 割り込み
-* TIMER(0/1/2/3) および MR0/1/2/3 割り込み
+���ߡ��ʲ��ε�ǽ���ɲä���Ƥ��ޤ���
+* UART(0/1/2/3) ����� Rx/Tx ������
+* TIMER(0/1/2/3) ����� MR0/1/2/3 ������
 
 
 ## How to build
 ### For Linux
-以下を実行してください。
+�ʲ���¹Ԥ��Ƥ���������
 * **cd src**
 * **./configure**
 * **make**
 
 ### For MS-Windows
-**bin/** ディレクトリに完成した実行ファイル **skyeye.exe** があります。
-もし、自分でビルドする場合はMinGW/MSYS環境が必要です。MSYSシェル上で以下のコマンドを実行してください。
+**bin/** �ǥ��쥯�ȥ�˴��������¹ԥե����� **skyeye.exe** ������ޤ���
+�⤷����ʬ�ǥӥ�ɤ������MinGW/MSYS�Ķ���ɬ�פǤ���MSYS�������ǰʲ��Υ��ޥ�ɤ�¹Ԥ��Ƥ���������
 
 * **cd src**
 * **./configure --enable-lcd=no LDFLAGS="-static -static-libstdc++ -static-libgcc -s"**
@@ -29,4 +29,4 @@
 
 
 ## Known Issue
-KEILのサンプル __*Interrupt-Driven UART I/O for Philips LPC23xx*__ は動作することを確認していますが、他のプログラムで動かないものも確認されています。おそらくモード切り替えに絡むCPSR/SPSRの動作がおかしいようです。
+KEIL�Υ���ץ� __*Interrupt-Driven UART I/O for Philips LPC23xx*__ ��ư��뤳�Ȥ��ǧ���Ƥ��ޤ�����¾�Υץ�������ư���ʤ���Τ��ǧ����Ƥ��ޤ��������餯�⡼���ڤ��ؤ�������CPSR/SPSR��ư����������褦�Ǥ���
