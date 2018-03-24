@@ -1,0 +1,4 @@
+Build under MinGW
+
+$ ./configure --enable-lcd=no LDFLAGS="-static -static-libstdc++ -static-libgcc -s"
+$ make
