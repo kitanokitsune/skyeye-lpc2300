@@ -2,7 +2,7 @@
 **SKYEYE Simulator for LPC2300**
 
 ## What is this
-This is a branch of SKYEYE ARM simulator. Base SKYEYE version is 1.2.6_rc1.
+This is a branch of [SKYEYE ARM simulator](https://sourceforge.net/projects/skyeye/). Base SKYEYE version is 1.2.6_rc1.
 
 The aim of this project is to support NXP's LPC23xx, especially **CQ-FRK-NXP-ARM** board. Now the following functions are implemented:
 
