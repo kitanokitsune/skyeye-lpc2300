@@ -14,11 +14,11 @@
 ### For Linux
 単に **./configure** と **make** を続けて実行してください。
 ### For MS-Windows
-**bin/**ディレクトリに完成した実行ファイル**skyeye.exe**があります。
+**bin/** ディレクトリに完成した実行ファイル **skyeye.exe** があります。
 もし、自分でビルドする場合はMinGW/MSYS環境が必要です。MSYSシェル上で以下のコマンドを実行してください。
 
 * **./configure --enable-lcd=no LDFLAGS="-static -static-libstdc++ -static-libgcc -s"**
 * **make**
 
 ## Known Issue
-KEILのサンプル __*Interrupt-Driven UART I/O for Philips LPC23xx*__ は動作することを確認していますが、他のプログラムで動かないものも確認されています。おそらくモード切り替えに絡むCPSR/SPSRの動作がおかしいように思います。
+KEILのサンプル __*Interrupt-Driven UART I/O for Philips LPC23xx*__ は動作することを確認していますが、他のプログラムで動かないものも確認されています。おそらくモード切り替えに絡むCPSR/SPSRの動作がおかしいようです。
