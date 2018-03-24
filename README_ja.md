@@ -12,11 +12,12 @@
 
 ## How to build
 ### For Linux
-単に **./configure** と **make** を続けて実行してください。
+単に **cd src** 、 **./configure** 、 **make** を続けて実行してください。
 ### For MS-Windows
 **bin/** ディレクトリに完成した実行ファイル **skyeye.exe** があります。
 もし、自分でビルドする場合はMinGW/MSYS環境が必要です。MSYSシェル上で以下のコマンドを実行してください。
 
+* **cd src*
 * **./configure --enable-lcd=no LDFLAGS="-static -static-libstdc++ -static-libgcc -s"**
 * **make**
 

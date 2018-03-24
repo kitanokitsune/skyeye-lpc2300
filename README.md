@@ -12,11 +12,12 @@ Now the following functions are implemented:
 
 ## How to build
 ### For Linux
-just type **./configure** and **make**.
+Just type **cd src** , **./configure** and **make**.
 ### For MS-Windows
 Simply use **skyeye.exe** in **bin/** directory.
 Or, if you want to build yourself, you need MinGW/MSYS environment. Type the following commands on MSYS shell.
 
+* **cd src**
 * **./configure --enable-lcd=no LDFLAGS="-static -static-libstdc++ -static-libgcc -s"**
 * **make**
 
