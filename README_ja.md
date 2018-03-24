@@ -5,7 +5,7 @@
 ## What is this
 これは[SkyEye ARM simulator](https://sourceforge.net/projects/skyeye/)のブランチです。ベースのSkyEyeのバージョンは[1.2.6_rc1](https://sourceforge.net/projects/skyeye/files/skyeye/skyeye-1.2.6_rc1/)です。
 
-このプロジェクトはSkyEyeにNXP LPC23xx（特に**CQ-FRK-NXP-ARM**基板）のサポートを追加することです。
+このプロジェクトの目的はSkyEyeにNXP LPC23xx（特に**CQ-FRK-NXP-ARM**基板）のサポートを追加することです。
 
 現在、以下の機能が追加されています。
 * UART(0/1/2/3) および Rx/Tx 割り込み
