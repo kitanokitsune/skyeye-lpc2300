@@ -1,5 +1,5 @@
 # skyeye-lpc2300
-**SKYEYE Simulator for LPC2300**
+**SkyEye Simulator for LPC2300**
 
 ## What is this
 This is a branch of [SkyEye ARM simulator](https://sourceforge.net/projects/skyeye/). Base SkyEye version is [1.2.6_rc1](https://sourceforge.net/projects/skyeye/files/skyeye/skyeye-1.2.6_rc1/).
