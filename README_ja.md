@@ -1,5 +1,5 @@
 # skyeye-lpc2300
-**SkyEye Simulator for LPC2300**
+**SkyEye ARM Simulator for LPC2300**
 
 ## What is this
 これは[SkyEye ARM simulator](https://sourceforge.net/projects/skyeye/)のブランチです。ベースのSkyEyeのバージョンは[1.2.6_rc1](https://sourceforge.net/projects/skyeye/files/skyeye/skyeye-1.2.6_rc1/)です。
