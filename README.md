@@ -2,7 +2,7 @@
 **SKYEYE Simulator for LPC2300**
 
 ## What is this
-This is a branch of [SKYEYE ARM simulator](https://sourceforge.net/projects/skyeye/). Base SKYEYE version is [1.2.6_rc1](https://sourceforge.net/projects/skyeye/files/skyeye/skyeye-1.2.6_rc1/).
+This is a branch of [SkyEye ARM simulator](https://sourceforge.net/projects/skyeye/). Base SkyEye version is [1.2.6_rc1](https://sourceforge.net/projects/skyeye/files/skyeye/skyeye-1.2.6_rc1/).
 
 The aim of this project is to support NXP's LPC23xx, especially **CQ-FRK-NXP-ARM** board. Now the following functions are implemented:
 
@@ -20,4 +20,4 @@ Or, if you want to build yourself, you need MinGW/MSYS environment. Type the fol
 * **make**
 
 ## Known Issue
-I confirmed KEIL's sample *Interrupt-Driven UART I/O for Philips LPC23xx* works fine on the simulator. But some programs have problems. I guess the cause is related to CPSR/SPSR mode switching.
+I confirmed KEIL's sample __*Interrupt-Driven UART I/O for Philips LPC23xx*__ works fine on the simulator. But some programs have problems. I guess the cause is related to CPSR/SPSR mode switching.
