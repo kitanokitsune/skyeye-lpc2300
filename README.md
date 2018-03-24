@@ -16,9 +16,8 @@ just type **./configure** and **make**.
 Simply use **skyeye.exe** in **bin/** directory.
 Or, if you want to build yourself, you need MinGW/MSYS environment. Type the following commands on MSYS shell.
 
- **./configure --enable-lcd=no LDFLAGS="-static -static-libstdc++ -static-libgcc -s"**
-
- **make**
+* **./configure --enable-lcd=no LDFLAGS="-static -static-libstdc++ -static-libgcc -s"**
+* **make**
 
 ## Known Issue
 I confirmed KEIL's sample *Interrupt-Driven UART I/O for Philips LPC23xx* works fine on the simulator. But some programs have problems. I guess the cause is related to CPSR/SPSR mode switching.
