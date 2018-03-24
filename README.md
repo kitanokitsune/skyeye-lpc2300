@@ -4,8 +4,9 @@
 ## What is this
 This is a branch of [SkyEye ARM simulator](https://sourceforge.net/projects/skyeye/). Base SkyEye version is [1.2.6_rc1](https://sourceforge.net/projects/skyeye/files/skyeye/skyeye-1.2.6_rc1/).
 
-The aim of this project is to support NXP's LPC23xx, especially **CQ-FRK-NXP-ARM** board. Now the following functions are implemented:
+The aim of this project is to support NXP's LPC23xx, especially **CQ-FRK-NXP-ARM** board.
 
+Now the following functions are implemented:
 * UART(0/1/2/3) function and Rx/Tx interrupt
 * TIMER(0/1/2/3) function and MR0/1/2/3 interrupt
 
