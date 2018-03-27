@@ -28,5 +28,9 @@
 * **make**
 
 
+## Licence
+GNU GPL v2
+
+
 ## Known Issue
 KEILのサンプル __*Interrupt-Driven UART I/O for Philips LPC23xx*__ は動作することを確認していますが、他のプログラムで動かないものも確認されています。おそらくモード切り替えに絡むCPSR/SPSRの動作がおかしいようです。

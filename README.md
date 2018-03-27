@@ -28,5 +28,9 @@ Or, if you want to build yourself, you need MinGW/MSYS environment. Type the fol
 * **make**
 
 
+## Licence
+GNU GPL v2
+
+
 ## Known Issue
 I confirmed KEIL's sample __*Interrupt-Driven UART I/O for Philips LPC23xx*__ works fine on the simulator. But there exists another program having problems. I guess the cause is related to CPSR/SPSR mode switching.
