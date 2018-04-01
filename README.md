@@ -3,7 +3,7 @@
 
 
 ## What is this
-This is a branch of [SkyEye ARM simulator](https://sourceforge.net/projects/skyeye/). Base SkyEye version is [1.2.6_rc1](https://sourceforge.net/projects/skyeye/files/skyeye/skyeye-1.2.6_rc1/).
+This is a fork of [SkyEye ARM simulator](https://sourceforge.net/projects/skyeye/). Base SkyEye version is [1.2.6_rc1](https://sourceforge.net/projects/skyeye/files/skyeye/skyeye-1.2.6_rc1/).
 
 The aim of this project is to support NXP's LPC23xx, especially **CQ-FRK-NXP-ARM** board.
 

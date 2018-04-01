@@ -3,7 +3,7 @@
 
 
 ## What is this
-これは[SkyEye ARM simulator](https://sourceforge.net/projects/skyeye/)のブランチです。ベースのSkyEyeのバージョンは[1.2.6_rc1](https://sourceforge.net/projects/skyeye/files/skyeye/skyeye-1.2.6_rc1/)です。
+これは[SkyEye ARM simulator](https://sourceforge.net/projects/skyeye/)のforkです。ベースのSkyEyeのバージョンは[1.2.6_rc1](https://sourceforge.net/projects/skyeye/files/skyeye/skyeye-1.2.6_rc1/)です。
 
 このプロジェクトの目的はSkyEyeにNXP LPC23xx（特に**CQ-FRK-NXP-ARM**基板）のサポートを追加することです。
 
