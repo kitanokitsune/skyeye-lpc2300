@@ -21,6 +21,7 @@
 
 /*
  * 03/03/2018 	New file skyeye_mach_lpc2300.c based on skyeye_mach_lpc2210.c
+ * 04/07/2018 	Bug fix: PINMODE read/write results in PINSEL read/write
  * */
 
 #ifdef __WIN32__
@@ -779,7 +780,7 @@ ARMword lpc2300_io_read_word(ARMul_State *state, ARMword addr)
 		}
 		/*Pin Mode Select Control*/
 		if(addr-0xe002c040 <=0x24 && addr-0xe002c040>=0){
-			data = io.pinsel[(addr-0xe002c040)/4] ;
+			data = io.pinmode[(addr-0xe002c040)/4] ;
 			break;
 		}
 #if 1
@@ -1091,7 +1092,7 @@ void lpc2300_io_write_word(ARMul_State *state, ARMword addr, ARMword data)
 		}
 		/*Pin Mode Select Control*/
 		if(addr-0xe002c040 <=0x24 && addr-0xe002c040>=0){
-			io.pinsel[(addr-0xe002c040)/4] = data;
+			io.pinmode[(addr-0xe002c040)/4] = data;
 			break;
 		}
 #if 1
