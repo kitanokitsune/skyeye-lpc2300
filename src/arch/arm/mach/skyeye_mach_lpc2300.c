@@ -22,6 +22,8 @@
 /*
  * 03/03/2018 	New file skyeye_mach_lpc2300.c based on skyeye_mach_lpc2210.c
  * 04/08/2018 	Bug fix: PINMODE read/write results in PINSEL read/write
+ *            	Add UART 2/3
+ *            	Fix some registers
  * */
 
 #ifdef __WIN32__
@@ -881,10 +883,13 @@ void lpc2300_io_write_word(ARMul_State *state, ARMword addr, ARMword data)
 		break;
 
 	case 0xfffff018: /* SIR */
-		io.vic.SoftInt = data;
+		io.vic.SoftInt |= data;
+		io.vic.SoftIntClear &= ~data;
+/*		lpc2100_update_int(state); */
 		break;
 	case 0xfffff01c: /* SICR */
 		io.vic.SoftIntClear = data;
+		io.vic.SoftInt &= ~data;
 		break;
 	case 0xfffff020: /* PER */
 		io.vic.Protection = data;
@@ -1008,16 +1013,6 @@ void lpc2300_io_write_word(ARMul_State *state, ARMword addr, ARMword data)
 	/*PCLKSEL1*/
 	case 0xe01fc1ac:
 		io.pclksel1 = data;
-		break;
-
-	/*CPU Clock Configuration Register (CCLKCFG)*/
-	case 0xe01fc104:
-		break;
-	/*USB Clock Configuration Register (USBCLKCFG)*/
-	case 0xe01fc108:
-		break;
-	/*Clock Source Select Register (CLKSRCSEL)*/
-	case 0xe01fc10c:
 		break;
 
 	default:
