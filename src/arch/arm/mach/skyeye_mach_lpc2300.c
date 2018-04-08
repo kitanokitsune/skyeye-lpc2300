@@ -21,7 +21,7 @@
 
 /*
  * 03/03/2018 	New file skyeye_mach_lpc2300.c based on skyeye_mach_lpc2210.c
- * 04/07/2018 	Bug fix: PINMODE read/write results in PINSEL read/write
+ * 04/08/2018 	Bug fix: PINMODE read/write results in PINSEL read/write
  * */
 
 #ifdef __WIN32__
@@ -1010,9 +1010,6 @@ void lpc2300_io_write_word(ARMul_State *state, ARMword addr, ARMword data)
 		break;
 	/*Clock Source Select Register (CLKSRCSEL)*/
 	case 0xe01fc10c:
-		break;
-	/*PCLKSEL0*/
-	case 0xe01fc18a:
 		break;
 
 	default:
