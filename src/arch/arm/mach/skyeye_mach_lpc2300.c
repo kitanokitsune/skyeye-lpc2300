@@ -722,6 +722,14 @@ ARMword lpc2300_io_read_word(ARMul_State *state, ARMword addr)
 			data = lpc2300_uart_read(state, addr,1);
 			break;
 		}
+		if (addr >=0xe0078000 && addr <= 0xe0078030) {
+			data = lpc2300_uart_read(state, addr,2);
+			break;
+		}
+		if (addr >=0xe007c000 && addr <= 0xe007c030) {
+			data = lpc2300_uart_read(state, addr,3);
+			break;
+		}
 		/*TIMER*/
 		if (addr >=0xe0004000 && addr <= 0xe0004070) {
 			data = lpc2300_timer_read(state, addr,0);
@@ -1020,6 +1028,14 @@ void lpc2300_io_write_word(ARMul_State *state, ARMword addr, ARMword data)
 		}
 		if (addr >=0xe0010000 && addr <= 0xe0010030) {
 			lpc2300_uart_write(state, addr, data,1);
+			break;
+		}
+		if (addr >=0xe0078000 && addr <= 0xe0078030) {
+			lpc2300_uart_write(state, addr, data,2);
+			break;
+		}
+		if (addr >=0xe007c000 && addr <= 0xe007c030) {
+			lpc2300_uart_write(state, addr, data,3);
 			break;
 		}
 		/*TIMER*/
