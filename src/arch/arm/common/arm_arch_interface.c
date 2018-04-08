@@ -136,6 +136,7 @@ extern void lpc_mach_init ();
 extern void ns9750_mach_init ();
 extern void lpc2210_mach_init();
 extern void lpc2300_mach_init();
+extern void lpc2100_mach_init();
 extern void ps7500_mach_init();
 extern void imx_mach_init();
 extern void integrator_mach_init();
@@ -204,7 +205,8 @@ machine_config_t arm_machines[] = {
 	{"sharp_lh7a400", shp_mach_init, NULL, NULL, NULL},	/* sharp lh7a400 developboard */
 	{"ns9750", ns9750_mach_init, NULL, NULL, NULL},		/* NetSilicon ns9750 */
 	{"lpc2210", lpc2210_mach_init, NULL, NULL, NULL},	/* Philips LPC2210 */
-	{"lpc2300", lpc2300_mach_init, NULL, NULL, NULL},	/* Philips LPC2300 */
+	{"lpc2300", lpc2300_mach_init, NULL, NULL, NULL},	/* Philips LPC23xx */
+	{"lpc2100", lpc2100_mach_init, NULL, NULL, NULL},	/* Philips LPC21xx */
 	{"ps7500", ps7500_mach_init, NULL, NULL, NULL},		/* Cirrus Logic PS7500FE */
 	{"omap5912", omap5912_mach_init, NULL, NULL, NULL},	/* omap5912 osk */
 };

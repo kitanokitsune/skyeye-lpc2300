@@ -62,7 +62,7 @@ am__libarm_a_SOURCES_DIST = common/arm_arch_interface.c \
 	mach/skyeye_mach_s3c44b0x.c mach/skyeye_mach_at91rm92.c \
 	mach/skyeye_mach_lh79520.c mach/skyeye_mach_pxa250.c \
 	mach/skyeye_mach_s3c4510b.c mach/skyeye_mach_cs89712.c \
-	mach/skyeye_mach_lpc2210.c mach/skyeye_mach_lpc2300.c mach/skyeye_mach_pxa270.c \
+	mach/skyeye_mach_lpc2210.c mach/skyeye_mach_lpc2300.c mach/skyeye_mach_lpc2100.c mach/skyeye_mach_pxa270.c \
 	mach/skyeye_mach_sa.c mach/skyeye_mach_ep7312.c \
 	mach/skyeye_mach_lpc.c mach/skyeye_mach_s3c2410x.c \
 	mach/skyeye_mach_sharp.c mach/skyeye_mach_omap5912.c \
@@ -84,7 +84,7 @@ am__objects_3 = skyeye_mach_ep9312.$(OBJEXT) \
 	skyeye_mach_ps7500.$(OBJEXT) skyeye_mach_s3c44b0x.$(OBJEXT) \
 	skyeye_mach_at91rm92.$(OBJEXT) skyeye_mach_lh79520.$(OBJEXT) \
 	skyeye_mach_pxa250.$(OBJEXT) skyeye_mach_s3c4510b.$(OBJEXT) \
-	skyeye_mach_cs89712.$(OBJEXT) skyeye_mach_lpc2210.$(OBJEXT) skyeye_mach_lpc2300.$(OBJEXT) \
+	skyeye_mach_cs89712.$(OBJEXT) skyeye_mach_lpc2210.$(OBJEXT) skyeye_mach_lpc2300.$(OBJEXT) skyeye_mach_lpc2100.$(OBJEXT) \
 	skyeye_mach_pxa270.$(OBJEXT) skyeye_mach_sa.$(OBJEXT) \
 	skyeye_mach_ep7312.$(OBJEXT) skyeye_mach_lpc.$(OBJEXT) \
 	skyeye_mach_s3c2410x.$(OBJEXT) skyeye_mach_sharp.$(OBJEXT) \
@@ -224,7 +224,7 @@ arm_mach = mach/skyeye_mach_ep9312.c    mach/skyeye_mach_s3c2440.c\
 mach/skyeye_mach_at91.c      mach/skyeye_mach_ns9750.c    mach/skyeye_mach_s3c3410x.c \
 mach/skyeye_mach_ps7500.c    mach/skyeye_mach_s3c44b0x.c \
 mach/skyeye_mach_at91rm92.c  mach/skyeye_mach_lh79520.c     mach/skyeye_mach_pxa250.c    mach/skyeye_mach_s3c4510b.c \
-mach/skyeye_mach_cs89712.c   mach/skyeye_mach_lpc2210.c mach/skyeye_mach_lpc2300.c   mach/skyeye_mach_pxa270.c    mach/skyeye_mach_sa.c	 \
+mach/skyeye_mach_cs89712.c   mach/skyeye_mach_lpc2210.c mach/skyeye_mach_lpc2300.c   mach/skyeye_mach_lpc2100.c   mach/skyeye_mach_pxa270.c    mach/skyeye_mach_sa.c	 \
 mach/skyeye_mach_ep7312.c    mach/skyeye_mach_lpc.c         mach/skyeye_mach_s3c2410x.c  mach/skyeye_mach_sharp.c mach/skyeye_mach_omap5912.c
 
 libarm_a_SOURCES = $(arm_comm) $(arm_mmu) $(arm_mach) $(am__append_1)
@@ -314,6 +314,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/skyeye_mach_lpc.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/skyeye_mach_lpc2210.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/skyeye_mach_lpc2300.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/skyeye_mach_lpc2100.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/skyeye_mach_ns9750.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/skyeye_mach_omap5912.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/skyeye_mach_ps7500.Po@am__quote@
@@ -839,6 +840,20 @@ skyeye_mach_lpc2300.obj: mach/skyeye_mach_lpc2300.c
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o skyeye_mach_lpc2300.obj `if test -f 'mach/skyeye_mach_lpc2300.c'; then $(CYGPATH_W) 'mach/skyeye_mach_lpc2300.c'; else $(CYGPATH_W) '$(srcdir)/mach/skyeye_mach_lpc2300.c'; fi`
 
 
+
+skyeye_mach_lpc2100.o: mach/skyeye_mach_lpc2100.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT skyeye_mach_lpc2100.o -MD -MP -MF $(DEPDIR)/skyeye_mach_lpc2100.Tpo -c -o skyeye_mach_lpc2100.o `test -f 'mach/skyeye_mach_lpc2100.c' || echo '$(srcdir)/'`mach/skyeye_mach_lpc2100.c
+@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/skyeye_mach_lpc2100.Tpo $(DEPDIR)/skyeye_mach_lpc2100.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='mach/skyeye_mach_lpc2100.c' object='skyeye_mach_lpc2100.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o skyeye_mach_lpc2100.o `test -f 'mach/skyeye_mach_lpc2100.c' || echo '$(srcdir)/'`mach/skyeye_mach_lpc2100.c
+
+skyeye_mach_lpc2100.obj: mach/skyeye_mach_lpc2100.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT skyeye_mach_lpc2100.obj -MD -MP -MF $(DEPDIR)/skyeye_mach_lpc2100.Tpo -c -o skyeye_mach_lpc2100.obj `if test -f 'mach/skyeye_mach_lpc2100.c'; then $(CYGPATH_W) 'mach/skyeye_mach_lpc2100.c'; else $(CYGPATH_W) '$(srcdir)/mach/skyeye_mach_lpc2100.c'; fi`
+@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/skyeye_mach_lpc2100.Tpo $(DEPDIR)/skyeye_mach_lpc2100.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='mach/skyeye_mach_lpc2100.c' object='skyeye_mach_lpc2100.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o skyeye_mach_lpc2100.obj `if test -f 'mach/skyeye_mach_lpc2100.c'; then $(CYGPATH_W) 'mach/skyeye_mach_lpc2100.c'; else $(CYGPATH_W) '$(srcdir)/mach/skyeye_mach_lpc2100.c'; fi`
 
 
 

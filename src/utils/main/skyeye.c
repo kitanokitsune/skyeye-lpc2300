@@ -520,7 +520,7 @@ void display_all_support(){
                  "----------- Architectures and CPUs simulated by SkyEye-------------\n");
         printf ( "-------- ARM architectures ---------\n");
 	
-	for(i = 0; i < 22; i++)
+	for(i = 0; i < 23; i++)
 		printf("%s \n",arm_machines[i].machine_name);
 	printf ("-------- BlackFin architectures ----\n");
 	for(i = 0; i < 2 ; i++)
