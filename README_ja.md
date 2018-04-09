@@ -3,29 +3,29 @@
 
 
 ## What is this
-�����[SkyEye ARM simulator](https://sourceforge.net/projects/skyeye/)��fork�Ǥ����١�����SkyEye�ΥС�������[1.2.6_rc1](https://sourceforge.net/projects/skyeye/files/skyeye/skyeye-1.2.6_rc1/)�Ǥ���
+これは[SkyEye ARM simulator](https://sourceforge.net/projects/skyeye/)のforkです。ベースのSkyEyeのバージョンは[1.2.6_rc1](https://sourceforge.net/projects/skyeye/files/skyeye/skyeye-1.2.6_rc1/)です。
 
-���Υץ��������Ȥ���Ū��SkyEye��NXP LPC23xx���ä�**CQ-FRK-NXP-ARM**���ġˤΥ��ݡ��Ȥ��ɲä��뤳�ȤǤ���
+このプロジェクトの目的はSkyEyeにNXP LPC23xx（特に**CQ-FRK-NXP-ARM**基板）のサポートを追加することです。
 
-���ߡ��ʲ��ΥǥХ������ɲä���Ƥ��ޤ���
+現在、以下のデバイスが追加されています。
 * **LPC23xx family** (LPC2300, LPC2361, LPC2362, LPC2364, LPC2365, LPC2366, LPC2367,LPC2368, LPC2377, LPC2378, LPC2387, LPC2388)
 * **LPC21xx family** (LPC2131, LPC2132, LPC2134, LPC2136, LPC2138)
 
-�ޤ��������ΥǥХ����˰ʲ��ε�ǽ��������Ƥ��ޤ���
-* **UART**(0/1/2/3) ����� Rx/Tx ������
-* **TIMER**(0/1/2/3) ����� MR0/1/2/3 ������
+また、これらのデバイスに以下の機能を実装しています。
+* **UART**(0/1/2/3) および Rx/Tx 割り込み
+* **TIMER**(0/1/2/3) および MR0/1/2/3 割り込み
 
 
 ## How to build
 ### For Linux
-�ʲ���¹Ԥ��Ƥ���������
+以下を実行してください。
 * **cd src**
 * **./configure**
 * **make**
 
 ### For MS-Windows
-**bin/** �ǥ��쥯�ȥ�˴��������¹ԥե����� **skyeye.exe** ������ޤ���
-�⤷����ʬ�ǥӥ�ɤ������MinGW/MSYS�Ķ���ɬ�פǤ���MSYS�������ǰʲ��Υ��ޥ�ɤ�¹Ԥ��Ƥ���������
+**bin/** ディレクトリに完成した実行ファイル **skyeye.exe** があります。
+もし、自分でビルドする場合はMinGW/MSYS環境が必要です。MSYSシェル上で以下のコマンドを実行してください。
 
 * **cd src**
 * **./configure --enable-lcd=no LDFLAGS="-static -static-libstdc++ -static-libgcc -s"**
@@ -37,4 +37,4 @@ GNU GPL v2
 
 
 ## Known Issue
-KEIL�Υ���ץ� __*Interrupt-Driven UART I/O for Philips LPC23xx*__ ��ư��뤳�Ȥ��ǧ���Ƥ��ޤ�����¾�Υץ�������ư���ʤ���Τ��ǧ����Ƥ��ޤ��������餯�⡼���ڤ��ؤ�������CPSR/SPSR��ư����������褦�Ǥ���
+KEILのサンプル __*Interrupt-Driven UART I/O for Philips LPC23xx*__ は動作することを確認していますが、他のプログラムで動かないものも確認されています。おそらくモード切り替えに絡むCPSR/SPSRの動作がおかしいようです。
