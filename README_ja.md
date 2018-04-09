@@ -9,7 +9,7 @@
 
 現在、以下のデバイスが追加されています。
 * **LPC23xx family** (LPC2300, LPC2361, LPC2362, LPC2364, LPC2365, LPC2366, LPC2367,LPC2368, LPC2377, LPC2378, LPC2387, LPC2388)
-* **LPC21xx family** (LPC2131, LPC2132, LPC2134, LPC2136, LPC2138)
+* **LPC213x family** (LPC2131, LPC2132, LPC2134, LPC2136, LPC2138)
 
 また、これらのデバイスに以下の機能を実装しています。
 * **UART**(0/1/2/3) および Rx/Tx 割り込み

@@ -1,5 +1,5 @@
 /*
-	skyeye_mach_lpc2100.c - define machine lpc2100 for skyeye
+	skyeye_mach_lpc2130.c - define machine lpc2130 for skyeye
 	Copyright (C) 2003 Skyeye Develop Group
 	for help please send mail to <skyeye-developer@lists.gro.clinux.org>
 
@@ -20,7 +20,7 @@
 */
 
 /*
- * 04/08/2018 	New file skyeye_mach_lpc2100.c based on skyeye_mach_lpc2210.c
+ * 04/08/2018 	New file skyeye_mach_lpc2130.c based on skyeye_mach_lpc2210.c
  * 04/09/2018 	Bug fix: Some program goes into infinite loop when UART polling.
  * */
 
@@ -38,8 +38,8 @@
 
 //teawater add for arm2x86 2005.03.18-------------------------------------------
 //make gcc-3.4 can compile this file
-ARMword lpc2100_uart_read(ARMul_State *state, ARMword addr,int i);
-void lpc2100_io_write_word(ARMul_State *state, ARMword addr, ARMword data);
+ARMword lpc2130_uart_read(ARMul_State *state, ARMword addr,int i);
+void lpc2130_io_write_word(ARMul_State *state, ARMword addr, ARMword data);
 //AJ2D--------------------------------------------------------------------------
 
 #define BITMSK(n)	(1<<(n))
@@ -68,7 +68,7 @@ typedef struct timer
 	ARMword cr3;
 	ARMword emr;
 	ARMword ctcr;
-} lpc2100_timer_t;
+} lpc2130_timer_t;
 
 typedef struct uart
 {
@@ -85,7 +85,7 @@ typedef struct uart
 	ARMword dlm;
 	char t_fifo[16];
 	char r_fifo[16];
-} lpc2100_uart_t;
+} lpc2130_uart_t;
 
 typedef struct pll
 {
@@ -93,7 +93,7 @@ typedef struct pll
 	ARMword cfg;
 	ARMword stat;
 	ARMword feed;
-} lpc2100_pll_t;
+} lpc2130_pll_t;
 
 typedef struct vic
 {
@@ -111,19 +111,19 @@ typedef struct vic
 	ARMword VectAddr[16];
 	ARMword VectCntl[16];  /* VICVectCntl */
 	signed int	last_irq_no;
-} lpc2100_vic_t;
+} lpc2130_vic_t;
 
-typedef struct lpc2100_io {
+typedef struct lpc2130_io {
 	ARMword			syscon;			/* System control */
 //	ARMword			sysflg;			/* System status flags */
-	lpc2100_pll_t	pll;
-	lpc2100_timer_t	timer[2];
-	lpc2100_vic_t	vic;
+	lpc2130_pll_t	pll;
+	lpc2130_timer_t	timer[2];
+	lpc2130_vic_t	vic;
 	ARMword			pconp;			/* Peripheral Power Control */
 	ARMword			pinsel[3];		/*Pin Select Register*/
 	ARMword			FIO[160];
 		int			tc_prescale;
-	lpc2100_uart_t	uart[2];		/* Receive data register */
+	lpc2130_uart_t	uart[2];		/* Receive data register */
 	ARMword			mmcr;			/*Memory mapping control register*/
 	ARMword			vibdiv;
 
@@ -150,15 +150,15 @@ typedef struct lpc2100_io {
 	__int64		lasttimertick;
 #endif
 
-} lpc2100_io_t;
+} lpc2130_io_t;
 
-static lpc2100_io_t lpc2100_io;
+static lpc2130_io_t lpc2130_io;
 
-#define io lpc2100_io
+#define io lpc2130_io
 #define IRQTIMER(i)		(1<<(i+4))
 #define IRQUART(i)		(1<<(i+6))
 
-static void lpc2100_update_int(ARMul_State *state)
+static void lpc2130_update_int(ARMul_State *state)
 {
 	u32 irq_no, irq = 0;
 	int irq_prio, i;
@@ -182,7 +182,7 @@ static void lpc2100_update_int(ARMul_State *state)
 	state->NfiqSig = io.vic.FIQStatus ? LOW:HIGH;
 
 #if 0
-	fprintf(stderr, "\n** lpc2100_update_int **\t#%ld\n",state->NumInstrs);
+	fprintf(stderr, "\n** lpc2130_update_int **\t#%ld\n",state->NumInstrs);
 	fprintf(stderr, "CPSR  =%08x  RawIntr=%08x IntEnable=%08x PC=%08x\n",
 			state->Cpsr, io.vic.RawIntr, io.vic.IntEnable, state->Reg[15]);
 	fprintf(stderr, "IRQStat=%08x FIQStat=%08x VectAddr =%08x\n\n",
@@ -190,7 +190,7 @@ static void lpc2100_update_int(ARMul_State *state)
 	fflush(stderr);
 #endif
 }
-static void lpc2100_io_reset(ARMul_State *state)
+static void lpc2130_io_reset(ARMul_State *state)
 {
 	int i,j;
 #ifdef __WIN32__
@@ -257,8 +257,8 @@ static void lpc2100_io_reset(ARMul_State *state)
 
 #define UART_INT_CYCLE (128)
 
-/*lpc2100 io_do_cycle*/
-void lpc2100_io_do_cycle(ARMul_State *state)
+/*lpc2130 io_do_cycle*/
+void lpc2130_io_do_cycle(ARMul_State *state)
 {
 	static int uartcnt = UART_INT_CYCLE;
 	ARMword t,v,ntc;
@@ -308,7 +308,7 @@ void lpc2100_io_do_cycle(ARMul_State *state)
 								io.timer[i].ir |= 1<<n;	// MRn interrupt flag
 								io.vic.RawIntr |= IRQTIMER(i);
 							}
-							lpc2100_update_int(state);
+							lpc2130_update_int(state);
 						}
 					}
 				}
@@ -333,12 +333,12 @@ void lpc2100_io_do_cycle(ARMul_State *state)
 					io.uart[i].iir = (io.uart[i].iir & ~0xf) | 0x4;
 					io.vic.RawIntr |= IRQUART(i);
 				}
-				lpc2100_update_int(state);
+				lpc2130_update_int(state);
 			} else if ((uartcnt == UART_INT_CYCLE/2) && (io.uart[i].ier & 0x2)) {		/* Tx Interrupt */
 				io.uart[i].lsr |= 0x60;
 				io.uart[i].iir = (io.uart[i].iir & ~0xf) | 0x2;
 				io.vic.RawIntr |= IRQUART(i);
-				lpc2100_update_int(state);
+				lpc2130_update_int(state);
 			}
 		} //else if(!(io.vic.IntEnable & IRQUART(i)) && !(io.uart[i].lsr & 0x1)) {		/* UART Polling */
 //			tv.tv_sec = 0;
@@ -360,13 +360,13 @@ void lpc2100_io_do_cycle(ARMul_State *state)
 
 
 ARMword
-lpc2100_uart_read(ARMul_State *state, ARMword addr,int i)
+lpc2130_uart_read(ARMul_State *state, ARMword addr,int i)
 {
 	ARMword data;
 	struct timeval tv;
 	unsigned char buf;
 
-	DBG_PRINT("lpc2100_uart_read,addr=%x\n",addr);
+	DBG_PRINT("lpc2130_uart_read,addr=%x\n",addr);
 	switch ((addr & 0xfff) >> 2) {
 	case 0x0: // DLL or RbR
 		if (io.uart[i].lcr & 0x80) {	/* DLL if DLAB=1*/
@@ -375,7 +375,7 @@ lpc2100_uart_read(ARMul_State *state, ARMword addr,int i)
 			io.uart[i].lsr &= ~0x1;
 			io.vic.RawIntr &= ~IRQUART(i); /* clear interrupt */
 			if ((io.uart[i].iir & 0x6) == 0x4) io.uart[i].iir = (io.uart[i].iir & ~0xe) | 0x1; /* reset interrupt if IIR[3:0]==*100 */
-			lpc2100_update_int(state);
+			lpc2130_update_int(state);
 			data = io.uart[i].rbr;
 		}
 		break;
@@ -391,7 +391,7 @@ lpc2100_uart_read(ARMul_State *state, ARMword addr,int i)
 		data = io.uart[i].iir;
 		io.vic.RawIntr &= ~IRQUART(i);
 		if ((io.uart[i].iir & 0xf) == 0x2) io.uart[i].iir = (io.uart[i].iir & ~0xe) | 0x1; /* reset interrupt if IIR[3:0]=0010 */
-		lpc2100_update_int(state);
+		lpc2130_update_int(state);
 		break;
 	case 0x3: // LCR
 		data = io.uart[i].lcr;
@@ -407,14 +407,14 @@ lpc2100_uart_read(ARMul_State *state, ARMword addr,int i)
 		}
 		io.vic.RawIntr &= ~IRQUART(i);
 		if ((io.uart[i].iir & 0xf) == 0x6) io.uart[i].iir = (io.uart[i].iir & ~0xe) | 0x1; /* reset interrupt if IIR[3:0]=0110 */
-		lpc2100_update_int(state);
+		lpc2130_update_int(state);
 		data = io.uart[i].lsr;
 		break;
 	case 0x6: // MSR
 	    data = io.uart[i].msr;
 		io.vic.RawIntr &= ~IRQUART(i);
 		if ((io.uart[i].iir & 0xf) == 0) io.uart[i].iir = (io.uart[i].iir & ~0xe) | 0x1; /* reset interrupt if IIR[3:0]=0000 */
-		lpc2100_update_int(state);
+		lpc2130_update_int(state);
 		break;
 	case 0x7: // SCR
 		data = io.uart[i].scr;
@@ -431,7 +431,7 @@ lpc2100_uart_read(ARMul_State *state, ARMword addr,int i)
 
 
 void
-lpc2100_uart_write(ARMul_State *state, ARMword addr, ARMword data,int i)
+lpc2130_uart_write(ARMul_State *state, ARMword addr, ARMword data,int i)
 {
 	static ARMword tx_buf = 0;
 
@@ -448,7 +448,7 @@ lpc2100_uart_write(ARMul_State *state, ARMword addr, ARMword data,int i)
 				io.uart[i].lsr |= 0x60; /* indicate U1THR and U1TSR are empty */
 				io.vic.RawIntr &= ~IRQUART(i);
 				if ((io.uart[i].iir & 0xf) == 0x2) io.uart[i].iir = (io.uart[i].iir & ~0xe) | 0x1; /* reset interrupt if IIR[3:0]=0010 */
-				lpc2100_update_int(state);
+				lpc2130_update_int(state);
 			}
 			break;
 		case 0x1: // DLM or IER
@@ -475,7 +475,7 @@ lpc2100_uart_write(ARMul_State *state, ARMword addr, ARMword data,int i)
 
 
 ARMword
-lpc2100_timer_read(ARMul_State *state, ARMword addr,int i)
+lpc2130_timer_read(ARMul_State *state, ARMword addr,int i)
 {
 	ARMword data;
 	switch (addr & 0xfe) {
@@ -523,7 +523,7 @@ lpc2100_timer_read(ARMul_State *state, ARMword addr,int i)
 
 
 void
-lpc2100_timer_write(ARMul_State *state, ARMword addr, ARMword data,int i)
+lpc2130_timer_write(ARMul_State *state, ARMword addr, ARMword data,int i)
 {
 	switch (addr & 0xfe) {
 		case 0x00:
@@ -531,7 +531,7 @@ lpc2100_timer_write(ARMul_State *state, ARMword addr, ARMword data,int i)
 				io.vic.RawIntr &= ~IRQTIMER(i);	/* clear Timer interrupt */
 				io.timer[i].ir = 0;				/* clear int bit */
 			}
-			lpc2100_update_int(state);
+			lpc2130_update_int(state);
 			break;
 		case 0x04:
 			io.timer[i].tcr = data;
@@ -574,7 +574,7 @@ lpc2100_timer_write(ARMul_State *state, ARMword addr, ARMword data,int i)
 }
 
 
-ARMword lpc2100_io_read_word(ARMul_State *state, ARMword addr)
+ARMword lpc2130_io_read_word(ARMul_State *state, ARMword addr)
 {
 	ARMword data = -1;
 	static ARMword current_ivr = 0; /* mega hack,  2.0 needs this */
@@ -607,7 +607,7 @@ ARMword lpc2100_io_read_word(ARMul_State *state, ARMword addr)
 		break;
 	case 0xfffff014: /* Int Enable Clr Reg */
 		data = io.vic.IntEnClr;
-		lpc2100_update_int(state);
+		lpc2130_update_int(state);
 		break;
 	case 0xfffff030: /* VICVectAddr */
 		data = io.vic.Vect_Addr ;
@@ -678,20 +678,20 @@ ARMword lpc2100_io_read_word(ARMul_State *state, ARMword addr)
 	default:
 		/*UART*/
 		if (addr >=0xe000c000 && addr <= 0xe000c030) {
-			data = lpc2100_uart_read(state, addr,0);
+			data = lpc2130_uart_read(state, addr,0);
 			break;
 		}
 		if (addr >=0xe0010000 && addr <= 0xe0010030) {
-			data = lpc2100_uart_read(state, addr,1);
+			data = lpc2130_uart_read(state, addr,1);
 			break;
 		}
 		/*TIMER*/
 		if (addr >=0xe0004000 && addr <= 0xe0004070) {
-			data = lpc2100_timer_read(state, addr,0);
+			data = lpc2130_timer_read(state, addr,0);
 			break;
 		}
 		if (addr >=0xe0008000 && addr <= 0xe0008070) {
-			data = lpc2100_timer_read(state, addr,1);
+			data = lpc2130_timer_read(state, addr,1);
 			break;
 		}
 		/*VICVectAddr*/
@@ -746,17 +746,17 @@ ARMword lpc2100_io_read_word(ARMul_State *state, ARMword addr)
 	return data; 
 }
 
-ARMword lpc2100_io_read_byte(ARMul_State *state, ARMword addr)
+ARMword lpc2130_io_read_byte(ARMul_State *state, ARMword addr)
 {
-			return lpc2100_io_read_word(state,addr);
+			return lpc2130_io_read_word(state,addr);
 //			SKYEYE_OUTREGS(stderr);
 			//exit(-1);
 
 }
 
-ARMword lpc2100_io_read_halfword(ARMul_State *state, ARMword addr)
+ARMword lpc2130_io_read_halfword(ARMul_State *state, ARMword addr)
 {
-		return lpc2100_io_read_word(state,addr);
+		return lpc2130_io_read_word(state,addr);
 		//SKYEYE_OUTREGS(stderr);
 		//exit(-1);
 }
@@ -764,29 +764,29 @@ ARMword lpc2100_io_read_halfword(ARMul_State *state, ARMword addr)
 
 
 
-void lpc2100_io_write_byte(ARMul_State *state, ARMword addr, ARMword data)
+void lpc2130_io_write_byte(ARMul_State *state, ARMword addr, ARMword data)
 {
 
-     lpc2100_io_write_word(state,addr,data);
+     lpc2130_io_write_word(state,addr,data);
 	   //SKYEYE_OUTREGS(stderr);
 	   //exit(-1);
          
 }
 
-void lpc2100_io_write_halfword(ARMul_State *state, ARMword addr, ARMword data)
+void lpc2130_io_write_halfword(ARMul_State *state, ARMword addr, ARMword data)
 {
-	lpc2100_io_write_word(state,addr,data);
+	lpc2130_io_write_word(state,addr,data);
 	//SKYEYE_OUTREGS(stderr);
 	//exit(-1);
 }
 
-void lpc2100_io_write_word(ARMul_State *state, ARMword addr, ARMword data)
+void lpc2130_io_write_word(ARMul_State *state, ARMword addr, ARMword data)
 {
   	int i, mask, nIRQNum, nHighestIRQ;
 	ARMword ofs;
 
 	/*
-  	 * The lpc2100 system registers
+  	 * The lpc2130 system registers
   	 */
 
 
@@ -813,7 +813,7 @@ void lpc2100_io_write_word(ARMul_State *state, ARMword addr, ARMword data)
 	case 0xfffff010: /* IER */
 		io.vic.IntEnable |= data;
 		io.vic.IntEnClr &= ~data;
-		lpc2100_update_int(state);
+		lpc2130_update_int(state);
 //		data = unfix_int(io.intmr);
 		DBG_PRINT("write IER=%x,after update IntEnable=%x\n", data,io.vic.IntEnable);
 		break;
@@ -825,7 +825,7 @@ void lpc2100_io_write_word(ARMul_State *state, ARMword addr, ARMword data)
 	case 0xfffff018: /* SIR */
 		io.vic.SoftInt |= data;
 		io.vic.SoftIntClear &= ~data;
-/*		lpc2100_update_int(state); */
+/*		lpc2130_update_int(state); */
 		break;
 	case 0xfffff01c: /* SICR */
 		io.vic.SoftIntClear = data;
@@ -858,7 +858,7 @@ void lpc2100_io_write_word(ARMul_State *state, ARMword addr, ARMword data)
 				break;
 			}
 			io.vic.last_irq_no = -1;
-			lpc2100_update_int(state);
+			lpc2130_update_int(state);
 		}
 		break;
 //	case 0xfffff024: /* DVAR */
@@ -950,20 +950,20 @@ void lpc2100_io_write_word(ARMul_State *state, ARMword addr, ARMword data)
 	default:
 		/*UART*/
 		if (addr >=0xe000c000 && addr <= 0xe000c030) {
-			lpc2100_uart_write(state, addr, data,0);
+			lpc2130_uart_write(state, addr, data,0);
 			break;
 		}
 		if (addr >=0xe0010000 && addr <= 0xe0010030) {
-			lpc2100_uart_write(state, addr, data,1);
+			lpc2130_uart_write(state, addr, data,1);
 			break;
 		}
 		/*TIMER*/
 		if (addr >=0xe0004000 && addr <= 0xe0004070) {
-			lpc2100_timer_write(state, addr, data,0);
+			lpc2130_timer_write(state, addr, data,0);
 			break;
 		}
 		if (addr >=0xe0008000 && addr <= 0xe0008070) {
-			lpc2100_timer_write(state, addr, data,1);
+			lpc2130_timer_write(state, addr, data,1);
 			break;
 		}
 		/*VICVectAddr*/
@@ -1016,23 +1016,23 @@ void lpc2100_io_write_word(ARMul_State *state, ARMword addr, ARMword data)
 	}
 }
 
-void lpc2100_mach_init(ARMul_State *state, machine_config_t *this_mach)
+void lpc2130_mach_init(ARMul_State *state, machine_config_t *this_mach)
 {
 	//chy 2003-08-19, setprocessor
 	ARMul_SelectProcessor(state, ARM_v4_Prop);
         //chy 2004-05-09, set lateabtSig
         state->lateabtSig = HIGH;
 
-	this_mach->mach_io_do_cycle = 		lpc2100_io_do_cycle;
-	this_mach->mach_io_reset = 		lpc2100_io_reset;
-	this_mach->mach_io_read_byte = 		lpc2100_io_read_byte;
-	this_mach->mach_io_write_byte = 	lpc2100_io_write_byte;
-	this_mach->mach_io_read_halfword = 	lpc2100_io_read_halfword;
-	this_mach->mach_io_write_halfword = 	lpc2100_io_write_halfword;
-	this_mach->mach_io_read_word = 		lpc2100_io_read_word;
-	this_mach->mach_io_write_word = 	lpc2100_io_write_word;
+	this_mach->mach_io_do_cycle = 		lpc2130_io_do_cycle;
+	this_mach->mach_io_reset = 		lpc2130_io_reset;
+	this_mach->mach_io_read_byte = 		lpc2130_io_read_byte;
+	this_mach->mach_io_write_byte = 	lpc2130_io_write_byte;
+	this_mach->mach_io_read_halfword = 	lpc2130_io_read_halfword;
+	this_mach->mach_io_write_halfword = 	lpc2130_io_write_halfword;
+	this_mach->mach_io_read_word = 		lpc2130_io_read_word;
+	this_mach->mach_io_write_word = 	lpc2130_io_write_word;
 
-	this_mach->mach_update_int = 		lpc2100_update_int;
+	this_mach->mach_update_int = 		lpc2130_update_int;
 
 	//ksh 2004-2-7
 
