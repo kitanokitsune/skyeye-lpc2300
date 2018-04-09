@@ -20,7 +20,8 @@
 */
 
 /*
- * 03/03/2018 	New file skyeye_mach_lpc2100.c based on skyeye_mach_lpc2210.c
+ * 04/08/2018 	New file skyeye_mach_lpc2100.c based on skyeye_mach_lpc2210.c
+ * 04/09/2018 	Bug fix: Some program goes into infinite loop when UART polling.
  * */
 
 #ifdef __WIN32__
@@ -339,15 +340,15 @@ void lpc2100_io_do_cycle(ARMul_State *state)
 				io.vic.RawIntr |= IRQUART(i);
 				lpc2100_update_int(state);
 			}
-		} else if(!(io.vic.IntEnable & IRQUART(i)) && !(io.uart[i].lsr & 0x1)) {		/* UART Polling */
-			tv.tv_sec = 0;
-			tv.tv_usec = 0;
-			if(skyeye_uart_read(i, &buf, 1, &tv, NULL) > 0) {
+		} //else if(!(io.vic.IntEnable & IRQUART(i)) && !(io.uart[i].lsr & 0x1)) {		/* UART Polling */
+//			tv.tv_sec = 0;
+//			tv.tv_usec = 0;
+//			if(skyeye_uart_read(i, &buf, 1, &tv, NULL) > 0) {
 //				fprintf(stderr, "SKYEYE:uart%d(pol) get input is %c IntEnable=%08x\n",i,buf,io.vic.IntEnable);fflush(stderr);
-				io.uart[i].rbr = buf;
-				io.uart[i].lsr |= 0x1;
-			}
-		}
+//				io.uart[i].rbr = buf;
+//				io.uart[i].lsr |= 0x1;
+//			}
+//		}
 	}
 
 	if (uartcnt == 0) {
@@ -396,6 +397,14 @@ lpc2100_uart_read(ARMul_State *state, ARMword addr,int i)
 		data = io.uart[i].lcr;
 		break;
 	case 0x5: // LSR
+		if(!(io.uart[i].ier & 0x1) && !(io.uart[i].lsr & 0x1)) {
+			tv.tv_sec = 0;
+			tv.tv_usec = 0;
+			if(skyeye_uart_read(i, &buf, 1, &tv, NULL) > 0) {
+				io.uart[i].rbr = buf;
+				io.uart[i].lsr |= 0x1;
+			}
+		}
 		io.vic.RawIntr &= ~IRQUART(i);
 		if ((io.uart[i].iir & 0xf) == 0x6) io.uart[i].iir = (io.uart[i].iir & ~0xe) | 0x1; /* reset interrupt if IIR[3:0]=0110 */
 		lpc2100_update_int(state);

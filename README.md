@@ -7,9 +7,13 @@ This is a fork of [SkyEye ARM simulator](https://sourceforge.net/projects/skyeye
 
 The aim of this project is to support NXP's LPC23xx, especially **CQ-FRK-NXP-ARM** board.
 
-Now the following functions are implemented:
-* UART(0/1/2/3) function and Rx/Tx interrupt
-* TIMER(0/1/2/3) function and MR0/1/2/3 interrupt
+Now the following devices are added:
+* **LPC23xx family** (LPC2300, LPC2361, LPC2362, LPC2364, LPC2365, LPC2366, LPC2367,LPC2368, LPC2377, LPC2378, LPC2387, LPC2388)
+* **LPC21xx family** (LPC2131, LPC2132, LPC2134, LPC2136, LPC2138)
+
+And the following functions are implemented in these devices:
+* **UART**(0/1/2/3) and Rx/Tx interrupt
+* **TIMER**(0/1/2/3) and MR0/1/2/3 interrupt
 
 
 ## How to build
