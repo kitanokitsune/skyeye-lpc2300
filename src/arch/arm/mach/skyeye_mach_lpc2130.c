@@ -22,7 +22,7 @@
 /*
  * 04/08/2018 	New file skyeye_mach_lpc2130.c based on skyeye_mach_lpc2210.c
  * 04/09/2018 	Bug fix: Some program goes into infinite loop when UART polling.
- * 04/13/2018 	Bug fix: Incorrect usage of VICVectCntl register.
+ * 04/13/2018 	Bug fix: Incorrect usage of VICVectCntl register on lpc213x.
  * */
 
 #ifdef __WIN32__
