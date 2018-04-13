@@ -318,7 +318,7 @@ void lpc2130_io_do_cycle(ARMul_State *state)
 		if( (i==0) && !(io.pconp & (1<<3)) ) continue;
 		if( (i==1) && !(io.pconp & (1<<4)) ) continue;
 		if((io.vic.IntEnable & IRQUART(i)) && !(io.vic.RawIntr & IRQUART(i)) && (io.uart[i].iir & 0x1)) {		/* UART Interrupt */
-			if ((uartcnt == 0) && (io.uart[i].ier & 0x1)) {	/* Rx Interrupt */
+			if ((uartcnt == i) && (io.uart[i].ier & 0x1)) {	/* Rx Interrupt */
 				tv.tv_sec = 0;
 				tv.tv_usec = 0;
 				if(skyeye_uart_read(i, &buf, 1, &tv, NULL) > 0)
@@ -330,7 +330,7 @@ void lpc2130_io_do_cycle(ARMul_State *state)
 					io.vic.RawIntr |= IRQUART(i);
 				}
 				lpc2130_update_int(state);
-			} else if ((uartcnt == UART_INT_CYCLE/2) && (io.uart[i].ier & 0x2)) {		/* Tx Interrupt */
+			} else if ((uartcnt == i+UART_INT_CYCLE/2) && (io.uart[i].ier & 0x2)) {		/* Tx Interrupt */
 				io.uart[i].lsr |= 0x60;
 				io.uart[i].iir = (io.uart[i].iir & ~0xf) | 0x2;
 				io.vic.RawIntr |= IRQUART(i);
