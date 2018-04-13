@@ -463,7 +463,7 @@ lpc2300_uart_write(ARMul_State *state, ARMword addr, ARMword data,int i)
 			if (io.uart[i].lcr & 0x80) {	/* DLL if DLAB=1*/
 				io.uart[i].dll = data;
 			} else {						/* THR if DLAB=0 */
-				char c = data;
+				unsigned char c = data & 0xff;
 
 				skyeye_uart_write(i, &c, 1, NULL);
 
