@@ -172,7 +172,7 @@ static void lpc2300_update_int(ARMul_State *state)
 	io.vic.IRQStatus = irq & ~io.vic.IntSelect;
 	io.vic.FIQStatus = irq & io.vic.IntSelect;
 
-	irq_no = 0;
+	irq_no = -1;
 	irq_prio = 16;
 /*	for (i = 0 ; i < 32 ; i++) { // Full interrupt source */
 	for (i = 4 ; i <= 29 ; i++) { // implemented source only
@@ -182,7 +182,9 @@ static void lpc2300_update_int(ARMul_State *state)
 		}
 	}
 	io.vic.last_irq_no = irq_no;
-	io.vic.Vect_Addr = io.vic.VectAddr[irq_no];
+	if (irq_no >= 0) {
+		io.vic.Vect_Addr = io.vic.VectAddr[irq_no];
+	}
 
 	state->NirqSig = io.vic.IRQStatus ? LOW:HIGH; 
 	state->NfiqSig = io.vic.FIQStatus ? LOW:HIGH;
