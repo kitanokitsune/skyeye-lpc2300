@@ -22,6 +22,7 @@
 /*
  * 04/08/2018 	New file skyeye_mach_lpc2130.c based on skyeye_mach_lpc2210.c
  * 04/09/2018 	Bug fix: Some program goes into infinite loop when UART polling.
+ * 04/13/2018 	Bug fix: Incorrect usage of VICVectCntl register.
  * */
 
 #ifdef __WIN32__
@@ -107,15 +108,14 @@ typedef struct vic
 	ARMword SoftIntClear;
 	ARMword Protection;
 	ARMword Vect_Addr;
-//	ARMword VICSWPrioMask;
 	ARMword VectAddr[16];
-	ARMword VectCntl[16];  /* VICVectCntl */
-	signed int	last_irq_no;
+	ARMword VectCntl[16];  /* VICVectCntl: IRQ Slot */
+	signed int	last_irq_slot;
 } lpc2130_vic_t;
 
 typedef struct lpc2130_io {
 	ARMword			syscon;			/* System control */
-//	ARMword			sysflg;			/* System status flags */
+
 	lpc2130_pll_t	pll;
 	lpc2130_timer_t	timer[2];
 	lpc2130_vic_t	vic;
@@ -126,9 +126,6 @@ typedef struct lpc2130_io {
 	lpc2130_uart_t	uart[2];		/* Receive data register */
 	ARMword			mmcr;			/*Memory mapping control register*/
 	ARMword			vibdiv;
-
-//	ARMword			pclksel0;
-//	ARMword			pclksel1;
 
 	/*real time regs*/
 	ARMword		sec;
@@ -160,23 +157,25 @@ static lpc2130_io_t lpc2130_io;
 
 static void lpc2130_update_int(ARMul_State *state)
 {
-	u32 irq_no, irq = 0;
-	int irq_prio, i;
+	u32 irq = 0;
+	signed int i, slot_no;
 
 	irq = io.vic.RawIntr & io.vic.IntEnable ;
 	io.vic.IRQStatus = irq & ~io.vic.IntSelect;
 	io.vic.FIQStatus = irq & io.vic.IntSelect;
 
-	irq_no = 0;
-	irq_prio = 16;
-/*	for (i = 0 ; i < 22 ; i++) { // Full interrupt source */
-	for (i = 4 ; i <= 7 ; i++) { // implemented source only
-		if ((io.vic.IRQStatus & BITMSK(i)) && (irq_prio > io.vic.VectCntl[i])) {
-			irq_no = i;
+	slot_no = -1;
+	for (i = 0 ; i < 16 ; i++) {
+		if (!(io.vic.VectCntl[i] & 0x20)) continue;
+		if (io.vic.IRQStatus & BITMSK(io.vic.VectCntl[i] & 0x1f)) {
+			slot_no = i;
 		}
 	}
-	io.vic.last_irq_no = irq_no;
-	io.vic.Vect_Addr = io.vic.VectAddr[irq_no];
+
+	io.vic.last_irq_slot = slot_no;
+	if (slot_no >= 0) {
+		io.vic.Vect_Addr = io.vic.VectAddr[slot_no];
+	}
 
 	state->NirqSig = io.vic.IRQStatus ? LOW:HIGH; 
 	state->NfiqSig = io.vic.FIQStatus ? LOW:HIGH;
@@ -219,9 +218,8 @@ static void lpc2130_io_reset(ARMul_State *state)
 	io.vic.SoftInt = 0;
 	io.vic.Protection = 0;
 	io.vic.Vect_Addr = 0;
-//	io.vic.VICSWPrioMask = 0xFFFF;
 	for (i=0; i<16; i++) io.vic.VectAddr[i] = 0;
-	for (i=0; i<16; i++) io.vic.VectCntl[i] = 15; /* Vect Priority=lowest*/
+	for (i=0; i<16; i++) io.vic.VectCntl[i] = 0;
 
 	for (i=0 ; i<2 ; i++) {
 		io.uart[i].fcr = 0;
@@ -237,11 +235,9 @@ static void lpc2130_io_reset(ARMul_State *state)
 	/* PINSELn : 0xE002C000 + 4*n */
 	for (i=0; i<3; i++) io.pinsel[i] = 0;
 
-//	io.pclksel0 = 0;
-//	io.pclksel1 = 0;
 	io.vibdiv  = 0;
 	io.pconp = 0x1817be;
-	io.vic.last_irq_no = -1;
+	io.vic.last_irq_slot = -1;
 
 	/* FIOnDIR:0,FIOnMASK:10,FIOnPIN:14,FIOnSET:18,FIOnCLR:1c */
     for (i=0; i<160; i++) io.FIO[i] = 0x0;
@@ -441,7 +437,7 @@ lpc2130_uart_write(ARMul_State *state, ARMword addr, ARMword data,int i)
 			if (io.uart[i].lcr & 0x80) {	/* DLL if DLAB=1*/
 				io.uart[i].dll = data;
 			} else {						/* THR if DLAB=0 */
-				char c = data;
+				unsigned char c = data & 0xff;
 
 				skyeye_uart_write(i, &c, 1, NULL);
 
@@ -697,6 +693,7 @@ ARMword lpc2130_io_read_word(ARMul_State *state, ARMword addr)
 		/*VICVectAddr*/
 		if(addr-0xfffff100 <=0x3c && addr-0xfffff100 >=0){
 			data = io.vic.VectAddr[(addr-0xfffff100)/4] ;
+fprintf(stderr,"\nVICVectAddr(%08x)=%08x\n\n",addr,data);fflush(stderr);
 			break;
 		}
 		if(addr-0xfffff200 <=0x3c && addr-0xfffff200>=0){
@@ -814,7 +811,6 @@ void lpc2130_io_write_word(ARMul_State *state, ARMword addr, ARMword data)
 		io.vic.IntEnable |= data;
 		io.vic.IntEnClr &= ~data;
 		lpc2130_update_int(state);
-//		data = unfix_int(io.intmr);
 		DBG_PRINT("write IER=%x,after update IntEnable=%x\n", data,io.vic.IntEnable);
 		break;
 	case 0xfffff014: /* IECR */
@@ -844,10 +840,12 @@ void lpc2130_io_write_word(ARMul_State *state, ARMword addr, ARMword data)
 			io.vic.FIQStatus = 0;
 			break;
 		}
-		if (io.vic.last_irq_no >= 0) {
-			io.vic.IRQStatus &= ~BITMSK(io.vic.last_irq_no);
-			io.vic.RawIntr &= ~BITMSK(io.vic.last_irq_no);
-			switch (io.vic.last_irq_no) {
+		if (io.vic.last_irq_slot >= 0) {
+			int irq_no;
+			irq_no = io.vic.VectCntl[io.vic.last_irq_slot] & 0x1f;
+			io.vic.IRQStatus &= ~BITMSK(irq_no);
+			io.vic.RawIntr &= ~BITMSK(irq_no);
+			switch (irq_no) {
 			  case 6: /* Reset UART0 IIR Bit */
 				io.uart[0].iir = (io.uart[0].iir & ~0xf) | 0x1;
 				break;
@@ -857,13 +855,10 @@ void lpc2130_io_write_word(ARMul_State *state, ARMword addr, ARMword data)
 			  default:
 				break;
 			}
-			io.vic.last_irq_no = -1;
+			io.vic.last_irq_slot = -1;
 			lpc2130_update_int(state);
 		}
 		break;
-//	case 0xfffff024: /* DVAR */
-//		io.vic.VICSWPrioMask = data;
-//		break;
 
 	/*pll*/
 	case 0xe01fc080:
@@ -884,20 +879,6 @@ void lpc2130_io_write_word(ARMul_State *state, ARMword addr, ARMword data)
 	case 0xe01fc040:
 		io.mmcr = data;
 		break;
-
-	/*Extend Mem control*/
-/*	case 0xFFE00000:
-		io.bcfg[0] = data;
-		break;
-	case 0xFFE00004:
-		io.bcfg[1] = data;
-		break;
-	case 0xFFE00008:
-		io.bcfg[2] = data;
-		break;
-	case 0xFFE0000c:
-		io.bcfg[3] = data;
-		break; */
 
 	/*Real timer*/
 	case 0xe0024008:
