@@ -23,6 +23,7 @@
  * 04/08/2018 	New file skyeye_mach_lpc2130.c based on skyeye_mach_lpc2210.c
  * 04/09/2018 	Bug fix: Some program goes into infinite loop when UART polling.
  * 04/13/2018 	Bug fix: Incorrect usage of VICVectCntl register on lpc213x.
+ * 04/14/2018 	Add VICDefVectAddr support
  * */
 
 #ifdef __WIN32__
@@ -108,6 +109,7 @@ typedef struct vic
 	ARMword SoftIntClear;
 	ARMword Protection;
 	ARMword Vect_Addr;
+	ARMword DefVectAddr;
 	ARMword VectAddr[16];
 	ARMword VectCntl[16];  /* VICVectCntl: IRQ Slot */
 	signed int	last_irq_slot;
@@ -175,6 +177,8 @@ static void lpc2130_update_int(ARMul_State *state)
 	io.vic.last_irq_slot = slot_no;
 	if (slot_no >= 0) {
 		io.vic.Vect_Addr = io.vic.VectAddr[slot_no];
+	} else { /* if no slot responds */
+		io.vic.Vect_Addr = io.vic.DefVectAddr;
 	}
 
 	state->NirqSig = io.vic.IRQStatus ? LOW:HIGH; 
@@ -218,6 +222,7 @@ static void lpc2130_io_reset(ARMul_State *state)
 	io.vic.SoftInt = 0;
 	io.vic.Protection = 0;
 	io.vic.Vect_Addr = 0;
+	io.vic.DefVectAddr = 0;
 	for (i=0; i<16; i++) io.vic.VectAddr[i] = 0;
 	for (i=0; i<16; i++) io.vic.VectCntl[i] = 0;
 
@@ -608,6 +613,9 @@ ARMword lpc2130_io_read_word(ARMul_State *state, ARMword addr)
 	case 0xfffff030: /* VICVectAddr */
 		data = io.vic.Vect_Addr ;
 		break;
+	case 0xfffff034: /* VICDefVectAddr */
+		data = io.vic.DefVectAddr ;
+		break;
 
 	/*pll*/
 	case 0xe01fc080:
@@ -830,7 +838,7 @@ void lpc2130_io_write_word(ARMul_State *state, ARMword addr, ARMword data)
 	case 0xfffff020: /* PER */
 		io.vic.Protection = data;
 		break;
-	case 0xfffff030: /* VAR */
+	case 0xfffff030: /* VICVectAddr */
 //		io.vic.Vect_Addr = data;
 		//rmk by linxz, write VAR with any data will clear current int states
 		//FIQ interrupt
@@ -858,6 +866,9 @@ void lpc2130_io_write_word(ARMul_State *state, ARMword addr, ARMword data)
 			io.vic.last_irq_slot = -1;
 			lpc2130_update_int(state);
 		}
+		break;
+	case 0xfffff034: /* VICDefVectAddr */
+		io.vic.DefVectAddr = data;
 		break;
 
 	/*pll*/
