@@ -940,11 +940,12 @@ void lpc2300_io_write_word(ARMul_State *state, ARMword addr, ARMword data)
 	case 0xfffff018: /* SIR */
 		io.vic.SoftInt |= data;
 		io.vic.SoftIntClear &= ~data;
-/*		lpc2100_update_int(state); */
+		lpc2300_update_int(state);
 		break;
 	case 0xfffff01c: /* SICR */
 		io.vic.SoftIntClear = data;
 		io.vic.SoftInt &= ~data;
+		lpc2300_update_int(state);
 		break;
 	case 0xfffff020: /* PER */
 		io.vic.Protection = data;

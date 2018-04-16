@@ -112,6 +112,7 @@ typedef struct vic
 	ARMword DefVectAddr;
 	ARMword VectAddr[16];
 	ARMword VectCntl[16];  /* VICVectCntl: IRQ Slot */
+	ARMword INTSOURCE;
 	signed int	last_irq_slot;
 } lpc2130_vic_t;
 
@@ -162,12 +163,15 @@ static void lpc2130_update_int(ARMul_State *state)
 	u32 irq = 0;
 	signed int i, slot_no;
 
+	io.vic.RawIntr = io.vic.INTSOURCE | io.vic.SoftInt;
 	irq = io.vic.RawIntr & io.vic.IntEnable ;
 	io.vic.IRQStatus = irq & ~io.vic.IntSelect;
 	io.vic.FIQStatus = irq & io.vic.IntSelect;
 
+	state->NfiqSig = io.vic.FIQStatus ? LOW:HIGH;
+
 	slot_no = -1;
-	for (i = 0 ; i < 16 ; i++) {
+	for (i=0 ; i<16 ; i++) {
 		if (!(io.vic.VectCntl[i] & 0x20)) continue;
 		if (io.vic.IRQStatus & BITMSK(io.vic.VectCntl[i] & 0x1f)) {
 			slot_no = i;
@@ -182,7 +186,6 @@ static void lpc2130_update_int(ARMul_State *state)
 	}
 
 	state->NirqSig = io.vic.IRQStatus ? LOW:HIGH; 
-	state->NfiqSig = io.vic.FIQStatus ? LOW:HIGH;
 
 #if 0
 	fprintf(stderr, "\n** lpc2130_update_int **\t#%ld\n",state->NumInstrs);
@@ -225,6 +228,7 @@ static void lpc2130_io_reset(ARMul_State *state)
 	io.vic.DefVectAddr = 0;
 	for (i=0; i<16; i++) io.vic.VectAddr[i] = 0;
 	for (i=0; i<16; i++) io.vic.VectCntl[i] = 0;
+	io.vic.INTSOURCE = 0;
 
 	for (i=0 ; i<2 ; i++) {
 		io.uart[i].fcr = 0;
@@ -307,9 +311,9 @@ void lpc2130_io_do_cycle(ARMul_State *state)
 						if (v & 0x1) {						// gen interrupt
 							if (io.vic.IntEnable & IRQTIMER(i)) {
 								io.timer[i].ir |= 1<<n;	// MRn interrupt flag
-								io.vic.RawIntr |= IRQTIMER(i);
+								io.vic.INTSOURCE |= IRQTIMER(i);
+								lpc2130_update_int(state);
 							}
-							lpc2130_update_int(state);
 						}
 					}
 				}
@@ -332,13 +336,13 @@ void lpc2130_io_do_cycle(ARMul_State *state)
 					io.uart[i].rbr = buf;
 					io.uart[i].lsr |= 0x1;
 					io.uart[i].iir = (io.uart[i].iir & ~0xf) | 0x4;
-					io.vic.RawIntr |= IRQUART(i);
+					io.vic.INTSOURCE |= IRQUART(i);
 				}
 				lpc2130_update_int(state);
 			} else if ((uartcnt == i+UART_INT_CYCLE/2) && (io.uart[i].ier & 0x2)) {		/* Tx Interrupt */
 				io.uart[i].lsr |= 0x60;
 				io.uart[i].iir = (io.uart[i].iir & ~0xf) | 0x2;
-				io.vic.RawIntr |= IRQUART(i);
+				io.vic.INTSOURCE |= IRQUART(i);
 				lpc2130_update_int(state);
 			}
 		} //else if(!(io.vic.IntEnable & IRQUART(i)) && !(io.uart[i].lsr & 0x1)) {		/* UART Polling */
@@ -374,9 +378,11 @@ lpc2130_uart_read(ARMul_State *state, ARMword addr,int i)
 			data = io.uart[i].dll;
 		} else {						/* RbR if DLAB=0 */
 			io.uart[i].lsr &= ~0x1;
-			io.vic.RawIntr &= ~IRQUART(i); /* clear interrupt */
-			if ((io.uart[i].iir & 0x6) == 0x4) io.uart[i].iir = (io.uart[i].iir & ~0xe) | 0x1; /* reset interrupt if IIR[3:0]==*100 */
-			lpc2130_update_int(state);
+			io.vic.INTSOURCE &= ~IRQUART(i); /* clear interrupt */
+            if ((io.vic.IntEnable & IRQUART(i)) && ((io.uart[i].iir & 0x6) == 0x4)) { /* reset interrupt if IIR[3:0]==*100 */
+				io.uart[i].iir = (io.uart[i].iir & ~0xe) | 0x1;
+				lpc2130_update_int(state);
+			}
 			data = io.uart[i].rbr;
 		}
 		break;
@@ -390,9 +396,11 @@ lpc2130_uart_read(ARMul_State *state, ARMword addr,int i)
 		break;
 	case 0x2: // iir
 		data = io.uart[i].iir;
-		io.vic.RawIntr &= ~IRQUART(i);
-		if ((io.uart[i].iir & 0xf) == 0x2) io.uart[i].iir = (io.uart[i].iir & ~0xe) | 0x1; /* reset interrupt if IIR[3:0]=0010 */
-		lpc2130_update_int(state);
+		io.vic.INTSOURCE &= ~IRQUART(i);
+		if ((io.vic.IntEnable & IRQUART(i)) && ((io.uart[i].iir & 0xf) == 0x2)) { /* reset interrupt if IIR[3:0]=0010 */
+			io.uart[i].iir = (io.uart[i].iir & ~0xe) | 0x1;
+			lpc2130_update_int(state);
+		}
 		break;
 	case 0x3: // LCR
 		data = io.uart[i].lcr;
@@ -406,16 +414,20 @@ lpc2130_uart_read(ARMul_State *state, ARMword addr,int i)
 				io.uart[i].lsr |= 0x1;
 			}
 		}
-		io.vic.RawIntr &= ~IRQUART(i);
-		if ((io.uart[i].iir & 0xf) == 0x6) io.uart[i].iir = (io.uart[i].iir & ~0xe) | 0x1; /* reset interrupt if IIR[3:0]=0110 */
-		lpc2130_update_int(state);
+		io.vic.INTSOURCE &= ~IRQUART(i);
+		if ((io.vic.IntEnable & IRQUART(i)) && ((io.uart[i].iir & 0xf) == 0x6)) { /* reset interrupt if IIR[3:0]=0110 */
+			io.uart[i].iir = (io.uart[i].iir & ~0xe) | 0x1;
+			lpc2130_update_int(state);
+		}
 		data = io.uart[i].lsr;
 		break;
 	case 0x6: // MSR
 	    data = io.uart[i].msr;
-		io.vic.RawIntr &= ~IRQUART(i);
-		if ((io.uart[i].iir & 0xf) == 0) io.uart[i].iir = (io.uart[i].iir & ~0xe) | 0x1; /* reset interrupt if IIR[3:0]=0000 */
-		lpc2130_update_int(state);
+		io.vic.INTSOURCE &= ~IRQUART(i);
+		if ((io.vic.IntEnable & IRQUART(i)) && ((io.uart[i].iir & 0xf) == 0)) { /* reset interrupt if IIR[3:0]=0000 */
+			io.uart[i].iir = (io.uart[i].iir & ~0xe) | 0x1;
+			lpc2130_update_int(state);
+		}
 		break;
 	case 0x7: // SCR
 		data = io.uart[i].scr;
@@ -447,9 +459,11 @@ lpc2130_uart_write(ARMul_State *state, ARMword addr, ARMword data,int i)
 				skyeye_uart_write(i, &c, 1, NULL);
 
 				io.uart[i].lsr |= 0x60; /* indicate U1THR and U1TSR are empty */
-				io.vic.RawIntr &= ~IRQUART(i);
-				if ((io.uart[i].iir & 0xf) == 0x2) io.uart[i].iir = (io.uart[i].iir & ~0xe) | 0x1; /* reset interrupt if IIR[3:0]=0010 */
-				lpc2130_update_int(state);
+				io.vic.INTSOURCE &= ~IRQUART(i);
+				if ((io.vic.IntEnable & IRQUART(i)) && ((io.uart[i].iir & 0xf) == 0x2)) { /* reset interrupt if IIR[3:0]=0010 */
+					io.uart[i].iir = (io.uart[i].iir & ~0xe) | 0x1;
+					lpc2130_update_int(state);
+				}
 			}
 			break;
 		case 0x1: // DLM or IER
@@ -529,10 +543,10 @@ lpc2130_timer_write(ARMul_State *state, ARMword addr, ARMword data,int i)
 	switch (addr & 0xfe) {
 		case 0x00:
 			if(data & io.timer[i].ir & 0x3f) {
-				io.vic.RawIntr &= ~IRQTIMER(i);	/* clear Timer interrupt */
+				io.vic.INTSOURCE &= ~IRQTIMER(i);	/* clear Timer interrupt */
 				io.timer[i].ir = 0;				/* clear int bit */
 			}
-			lpc2130_update_int(state);
+			if (io.vic.IntEnable & IRQTIMER(i)) lpc2130_update_int(state);
 			break;
 		case 0x04:
 			io.timer[i].tcr = data;
@@ -829,11 +843,12 @@ void lpc2130_io_write_word(ARMul_State *state, ARMword addr, ARMword data)
 	case 0xfffff018: /* SIR */
 		io.vic.SoftInt |= data;
 		io.vic.SoftIntClear &= ~data;
-/*		lpc2130_update_int(state); */
+		lpc2130_update_int(state);
 		break;
 	case 0xfffff01c: /* SICR */
 		io.vic.SoftIntClear = data;
 		io.vic.SoftInt &= ~data;
+		lpc2130_update_int(state);
 		break;
 	case 0xfffff020: /* PER */
 		io.vic.Protection = data;
@@ -851,8 +866,8 @@ void lpc2130_io_write_word(ARMul_State *state, ARMword addr, ARMword data)
 		if (io.vic.last_irq_slot >= 0) {
 			int irq_no;
 			irq_no = io.vic.VectCntl[io.vic.last_irq_slot] & 0x1f;
-			io.vic.IRQStatus &= ~BITMSK(irq_no);
-			io.vic.RawIntr &= ~BITMSK(irq_no);
+/*			io.vic.IRQStatus &= ~BITMSK(irq_no); */
+			io.vic.INTSOURCE &= ~BITMSK(irq_no);
 			switch (irq_no) {
 			  case 6: /* Reset UART0 IIR Bit */
 				io.uart[0].iir = (io.uart[0].iir & ~0xf) | 0x1;
