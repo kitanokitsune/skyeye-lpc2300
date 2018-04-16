@@ -315,7 +315,6 @@ void lpc2300_io_do_cycle(ARMul_State *state)
 
 #if defined(__WIN32__) && 1		/* accelerate timer */
 	__int64 tns;
-	SleepEx(0,0);
 	GetSystemTimeAsFileTime((FILETIME*)&tns);
     t = 1 + (15*(ARMword)(tns - io.lasttimertick))/10;	/* speed up TC step */
 	io.lasttimertick = tns;
@@ -929,7 +928,6 @@ void lpc2300_io_write_word(ARMul_State *state, ARMword addr, ARMword data)
 		io.vic.IntEnable |= data;
 		io.vic.IntEnClr &= ~data;
 		lpc2300_update_int(state);
-//		data = unfix_int(io.intmr);
 		DBG_PRINT("write IER=%x,after update IntEnable=%x\n", data,io.vic.IntEnable);
 		break;
 	case 0xfffff014: /* IECR */
@@ -968,7 +966,7 @@ void lpc2300_io_write_word(ARMul_State *state, ARMword addr, ARMword data)
 				break;
 			}
 		}
-		/* Clear the appropriate IRQ */
+		/* Clear the corresponding IRQ */
 		if (nHighestPrio < 16) {
 			io.vic.HWPrioMask |= BITMSK(nHighestPrio);
 			nIRQNum = io.vic.IRQNumber[nHighestPrio];

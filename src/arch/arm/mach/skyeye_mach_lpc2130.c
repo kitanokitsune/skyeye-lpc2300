@@ -113,7 +113,7 @@ typedef struct vic
 	ARMword VectAddr[16];
 	ARMword VectCntl[16];  /* VICVectCntl: IRQ Slot */
 	ARMword INTSOURCE;
-	signed int	last_irq_slot;
+	ARMword HWPrioMask;
 } lpc2130_vic_t;
 
 typedef struct lpc2130_io {
@@ -161,7 +161,7 @@ static lpc2130_io_t lpc2130_io;
 static void lpc2130_update_int(ARMul_State *state)
 {
 	u32 irq = 0;
-	signed int i, slot_no;
+	signed int i, slot_no, ServicingPrio;
 
 	io.vic.RawIntr = io.vic.INTSOURCE | io.vic.SoftInt;
 	irq = io.vic.RawIntr & io.vic.IntEnable ;
@@ -170,15 +170,25 @@ static void lpc2130_update_int(ARMul_State *state)
 
 	state->NfiqSig = io.vic.FIQStatus ? LOW:HIGH;
 
-	slot_no = -1;
-	for (i=0 ; i<16 ; i++) {
-		if (!(io.vic.VectCntl[i] & 0x20)) continue;
-		if (io.vic.IRQStatus & BITMSK(io.vic.VectCntl[i] & 0x1f)) {
-			slot_no = i;
+	/* Search the highest IRQ priority being in service */
+	ServicingPrio = 16;
+	for (i=0; i<16; i++) {
+		if ( !(io.vic.HWPrioMask & BITMSK(i)) ) {
+			ServicingPrio = i;
+			break;
 		}
 	}
 
-	io.vic.last_irq_slot = slot_no;
+	/* Search the next IRQ to be asserted */
+	slot_no = -1;
+	for (i=0 ; i<ServicingPrio ; i++) {
+		if (!(io.vic.VectCntl[i] & 0x20)) continue;
+		if (io.vic.IRQStatus & BITMSK(io.vic.VectCntl[i] & 0x1f)) {
+			slot_no = i;
+			break;
+		}
+	}
+
 	if (slot_no >= 0) {
 		io.vic.Vect_Addr = io.vic.VectAddr[slot_no];
 	} else { /* if no slot responds */
@@ -229,6 +239,7 @@ static void lpc2130_io_reset(ARMul_State *state)
 	for (i=0; i<16; i++) io.vic.VectAddr[i] = 0;
 	for (i=0; i<16; i++) io.vic.VectCntl[i] = 0;
 	io.vic.INTSOURCE = 0;
+	io.vic.HWPrioMask = 0xffff;
 
 	for (i=0 ; i<2 ; i++) {
 		io.uart[i].fcr = 0;
@@ -246,7 +257,6 @@ static void lpc2130_io_reset(ARMul_State *state)
 
 	io.vibdiv  = 0;
 	io.pconp = 0x1817be;
-	io.vic.last_irq_slot = -1;
 
 	/* FIOnDIR:0,FIOnMASK:10,FIOnPIN:14,FIOnSET:18,FIOnCLR:1c */
     for (i=0; i<160; i++) io.FIO[i] = 0x0;
@@ -863,9 +873,19 @@ void lpc2130_io_write_word(ARMul_State *state, ARMword addr, ARMword data)
 			io.vic.FIQStatus = 0;
 			break;
 		}
-		if (io.vic.last_irq_slot >= 0) {
+		/* Search the highest priority of the active IRQ */
+		nHighestIRQ = 16;
+		for (i=0 ; i<16 ; i++) {
+			if ( !(io.vic.HWPrioMask & BITMSK(i)) ) {
+				nHighestIRQ = i;
+				break;
+			}
+		}
+		/* Clear the corresponding IRQ */
+		if (nHighestIRQ < 16) {
 			int irq_no;
-			irq_no = io.vic.VectCntl[io.vic.last_irq_slot] & 0x1f;
+			io.vic.HWPrioMask |= BITMSK(nHighestIRQ);
+			irq_no = io.vic.VectCntl[nHighestIRQ] & 0x1f;
 /*			io.vic.IRQStatus &= ~BITMSK(irq_no); */
 			io.vic.INTSOURCE &= ~BITMSK(irq_no);
 			switch (irq_no) {
@@ -878,7 +898,6 @@ void lpc2130_io_write_word(ARMul_State *state, ARMword addr, ARMword data)
 			  default:
 				break;
 			}
-			io.vic.last_irq_slot = -1;
 			lpc2130_update_int(state);
 		}
 		break;
