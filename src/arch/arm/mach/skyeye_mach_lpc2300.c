@@ -25,6 +25,7 @@
  *            	Add UART 2/3
  *            	Fix wrong access to some registers
  * 04/09/2018 	Bug fix: Some program goes into infinite loop when UART polling.
+ * 04/16/2018 	Improve VIC Interrupt
  * */
 
 #ifdef __WIN32__
@@ -110,10 +111,12 @@ typedef struct vic
 	ARMword SoftIntClear;
 	ARMword Protection;
 	ARMword Vect_Addr;
-	ARMword VICSWPrioMask;
+	ARMword SWPrioMask;
+	ARMword HWPrioMask;
 	ARMword VectAddr[32];
 	ARMword VectPrio[32];  /* VICVectCntl */
-	signed int	last_irq_no;
+	ARMword INTSOURCE;
+	signed int	IRQNumber[16]; /* Store servicing IRQ# of a given priority */
 } lpc2300_vic_t;
 
 typedef struct lpc2300_io {
@@ -165,34 +168,60 @@ static lpc2300_io_t lpc2300_io;
 
 static void lpc2300_update_int(ARMul_State *state)
 {
-	u32 irq_no, irq = 0;
-	int irq_prio, i;
+	u32 irq = 0;
+	signed int i, ServicingPrio, NextIRQ, irq_no, prio;
+	unsigned short PrioMask;
 
+	io.vic.RawIntr = io.vic.INTSOURCE | io.vic.SoftInt;
 	irq = io.vic.RawIntr & io.vic.IntEnable ;
 	io.vic.IRQStatus = irq & ~io.vic.IntSelect;
 	io.vic.FIQStatus = irq & io.vic.IntSelect;
 
-	irq_no = -1;
-	irq_prio = 16;
-/*	for (i = 0 ; i < 32 ; i++) { // Full interrupt source */
-	for (i = 4 ; i <= 29 ; i++) { // implemented source only
-		if (i==8) i=26;		/* skip IRQ #8-#25 (not implemented) */
-		if ((io.vic.IRQStatus & BITMSK(i)) && (irq_prio > io.vic.VectPrio[i])) {
-			irq_no = i;
+	state->NfiqSig = io.vic.FIQStatus ? LOW:HIGH;
+
+	/* Search the highest IRQ priority being in service */
+	ServicingPrio = 16;
+	for (i=0; i<16; i++) {
+		if ( !(io.vic.HWPrioMask & BITMSK(i)) ) {
+			ServicingPrio = i;
+			break;
 		}
 	}
-	io.vic.last_irq_no = irq_no;
-	if (irq_no >= 0) {
-		io.vic.Vect_Addr = io.vic.VectAddr[irq_no];
+
+	/* Search the next IRQ to be asserted */
+	NextIRQ = -1;
+	PrioMask = (io.vic.SWPrioMask & io.vic.HWPrioMask) & 0xffff;
+	for (irq_no=0; irq_no<32; irq_no++) {
+		if (io.vic.IRQStatus & BITMSK(irq_no)) {
+			prio = io.vic.VectPrio[irq_no];
+			if (ServicingPrio > prio) {
+				if (PrioMask & BITMSK(prio)) {
+					ServicingPrio = prio;
+					NextIRQ = irq_no;
+				}
+			}
+		}
 	}
 
-	state->NirqSig = io.vic.IRQStatus ? LOW:HIGH; 
-	state->NfiqSig = io.vic.FIQStatus ? LOW:HIGH;
+	/* calculate H/W priority mask and set IRQ signal */
+	if (NextIRQ >= 0 && ServicingPrio < 16) {
+		io.vic.HWPrioMask &= ~BITMSK(ServicingPrio);
+		io.vic.IRQNumber[ServicingPrio] = NextIRQ;
+		io.vic.Vect_Addr = io.vic.VectAddr[NextIRQ];
+		state->NirqSig = LOW;
+	} else {
+		state->NirqSig = HIGH;
+	}
+
 
 #if 0
 	fprintf(stderr, "\n** lpc2300_update_int **\t#%ld\n",state->NumInstrs);
+	fprintf(stderr, "HWMask=%08x  SWMask =%08x  Prio=%d\n",
+			io.vic.HWPrioMask, io.vic.SWPrioMask, ServicingPrio);
 	fprintf(stderr, "CPSR  =%08x  RawIntr=%08x IntEnable=%08x PC=%08x\n",
 			state->Cpsr, io.vic.RawIntr, io.vic.IntEnable, state->Reg[15]);
+	fprintf(stderr, "NirqSig=%d  NfiqSig=%d  NextIRQ=%d\n",
+			state->NirqSig, state->NfiqSig, NextIRQ);
 	fprintf(stderr, "IRQStat=%08x FIQStat=%08x VectAddr =%08x\n\n",
 			io.vic.IRQStatus, io.vic.FIQStatus, io.vic.Vect_Addr);
 	fflush(stderr);
@@ -227,9 +256,12 @@ static void lpc2300_io_reset(ARMul_State *state)
 	io.vic.SoftInt = 0;
 	io.vic.Protection = 0;
 	io.vic.Vect_Addr = 0;
-	io.vic.VICSWPrioMask = 0xFFFF;
+	io.vic.SWPrioMask = 0xFFFF;
+	io.vic.HWPrioMask = 0xFFFF;
 	for (i=0; i<32; i++) io.vic.VectAddr[i] = 0;
 	for (i=0; i<32; i++) io.vic.VectPrio[i] = 15; /* Vect Priority=lowest*/
+	for (i=0; i<16; i++) io.vic.IRQNumber[i] = 0;
+	io.vic.INTSOURCE = 0;
 
 	for (i=0 ; i<4 ; i++) {
 		io.uart[i].fcr = 0;
@@ -257,7 +289,6 @@ static void lpc2300_io_reset(ARMul_State *state)
 	io.pclksel1 = 0;
 	io.vibdiv  = 0;
 	io.pconp = 0x850ffe;
-	io.vic.last_irq_no = -1;
 
 	/* FIOnDIR:0,FIOnMASK:10,FIOnPIN:14,FIOnSET:18,FIOnCLR:1c */
     for (i=0; i<160; i++) io.FIO[i] = 0x0;
@@ -284,6 +315,7 @@ void lpc2300_io_do_cycle(ARMul_State *state)
 
 #if defined(__WIN32__) && 1		/* accelerate timer */
 	__int64 tns;
+	SleepEx(0,0);
 	GetSystemTimeAsFileTime((FILETIME*)&tns);
     t = 1 + (15*(ARMword)(tns - io.lasttimertick))/10;	/* speed up TC step */
 	io.lasttimertick = tns;
@@ -328,9 +360,11 @@ void lpc2300_io_do_cycle(ARMul_State *state)
 						/* See manual UM10211 Section 6.6 */
 							if (io.vic.IntEnable & IRQTIMER(i)) {
 								io.timer[i].ir |= 1<<n;	// MRn interrupt flag
-								io.vic.RawIntr |= IRQTIMER(i);
+//fprintf(stderr, "Timer%d Interrupt.%08x->",i,io.vic.INTSOURCE);
+								io.vic.INTSOURCE |= IRQTIMER(i);
+//fprintf(stderr, "%08x\n",io.vic.INTSOURCE);fflush(stderr);
+								lpc2300_update_int(state);
 							}
-							lpc2300_update_int(state);
 						}
 					}
 				}
@@ -355,13 +389,13 @@ void lpc2300_io_do_cycle(ARMul_State *state)
 					io.uart[i].rbr = buf;
 					io.uart[i].lsr |= 0x1;
 					io.uart[i].iir = (io.uart[i].iir & ~0xf) | 0x4;
-					io.vic.RawIntr |= IRQUART(i);
+					io.vic.INTSOURCE |= IRQUART(i);
 				}
 				lpc2300_update_int(state);
 			} else if ((uartcnt == i+UART_INT_CYCLE/2) && (io.uart[i].ier & 0x2)) {		/* Tx Interrupt */
 				io.uart[i].lsr |= 0x60;
 				io.uart[i].iir = (io.uart[i].iir & ~0xf) | 0x2;
-				io.vic.RawIntr |= IRQUART(i);
+				io.vic.INTSOURCE |= IRQUART(i);
 				lpc2300_update_int(state);
 			}
 		} //else if(!(io.vic.IntEnable & IRQUART(i)) && !(io.uart[i].lsr & 0x1)) {		/* UART Polling */
@@ -397,9 +431,11 @@ lpc2300_uart_read(ARMul_State *state, ARMword addr,int i)
 			data = io.uart[i].dll;
 		} else {						/* RbR if DLAB=0 */
 			io.uart[i].lsr &= ~0x1;
-			io.vic.RawIntr &= ~IRQUART(i); /* clear interrupt */
-			if ((io.uart[i].iir & 0x6) == 0x4) io.uart[i].iir = (io.uart[i].iir & ~0xe) | 0x1; /* reset interrupt if IIR[3:0]==*100 */
-			lpc2300_update_int(state);
+			io.vic.INTSOURCE &= ~IRQUART(i); /* clear interrupt */
+            if ((io.vic.IntEnable & IRQUART(i)) && ((io.uart[i].iir & 0x6) == 0x4)) { /* reset interrupt if IIR[3:0]==*100 */
+				io.uart[i].iir = (io.uart[i].iir & ~0xe) | 0x1;
+				lpc2300_update_int(state);
+			}
 			data = io.uart[i].rbr;
 		}
 		break;
@@ -413,9 +449,11 @@ lpc2300_uart_read(ARMul_State *state, ARMword addr,int i)
 		break;
 	case 0x2: // iir
 		data = io.uart[i].iir;
-		io.vic.RawIntr &= ~IRQUART(i);
-		if ((io.uart[i].iir & 0xf) == 0x2) io.uart[i].iir = (io.uart[i].iir & ~0xe) | 0x1; /* reset interrupt if IIR[3:0]=0010 */
-		lpc2300_update_int(state);
+		io.vic.INTSOURCE &= ~IRQUART(i);
+		if ((io.vic.IntEnable & IRQUART(i)) && ((io.uart[i].iir & 0xf) == 0x2)) { /* reset interrupt if IIR[3:0]=0010 */
+			io.uart[i].iir = (io.uart[i].iir & ~0xe) | 0x1;
+			lpc2300_update_int(state);
+		}
 		break;
 	case 0x3: // LCR
 		data = io.uart[i].lcr;
@@ -429,16 +467,20 @@ lpc2300_uart_read(ARMul_State *state, ARMword addr,int i)
 				io.uart[i].lsr |= 0x1;
 			}
 		}
-		io.vic.RawIntr &= ~IRQUART(i);
-		if ((io.uart[i].iir & 0xf) == 0x6) io.uart[i].iir = (io.uart[i].iir & ~0xe) | 0x1; /* reset interrupt if IIR[3:0]=0110 */
-		lpc2300_update_int(state);
+		io.vic.INTSOURCE &= ~IRQUART(i);
+		if ((io.vic.IntEnable & IRQUART(i)) && ((io.uart[i].iir & 0xf) == 0x6)) { /* reset interrupt if IIR[3:0]=0110 */
+			io.uart[i].iir = (io.uart[i].iir & ~0xe) | 0x1;
+			lpc2300_update_int(state);
+		}
 		data = io.uart[i].lsr;
 		break;
 	case 0x6: // MSR
 	    data = io.uart[i].msr;
-		io.vic.RawIntr &= ~IRQUART(i);
-		if ((io.uart[i].iir & 0xf) == 0) io.uart[i].iir = (io.uart[i].iir & ~0xe) | 0x1; /* reset interrupt if IIR[3:0]=0000 */
-		lpc2300_update_int(state);
+		io.vic.INTSOURCE &= ~IRQUART(i);
+		if ((io.vic.IntEnable & IRQUART(i)) && ((io.uart[i].iir & 0xf) == 0)) { /* reset interrupt if IIR[3:0]=0000 */
+			io.uart[i].iir = (io.uart[i].iir & ~0xe) | 0x1;
+			lpc2300_update_int(state);
+		}
 		break;
 	case 0x7: // SCR
 		data = io.uart[i].scr;
@@ -470,9 +512,11 @@ lpc2300_uart_write(ARMul_State *state, ARMword addr, ARMword data,int i)
 				skyeye_uart_write(i, &c, 1, NULL);
 
 				io.uart[i].lsr |= 0x60; /* indicate U1THR and U1TSR are empty */
-				io.vic.RawIntr &= ~IRQUART(i);
-				if ((io.uart[i].iir & 0xf) == 0x2) io.uart[i].iir = (io.uart[i].iir & ~0xe) | 0x1; /* reset interrupt if IIR[3:0]=0010 */
-				lpc2300_update_int(state);
+				io.vic.INTSOURCE &= ~IRQUART(i);
+				if ((io.vic.IntEnable & IRQUART(i)) && ((io.uart[i].iir & 0xf) == 0x2)) { /* reset interrupt if IIR[3:0]=0010 */
+					io.uart[i].iir = (io.uart[i].iir & ~0xe) | 0x1;
+					lpc2300_update_int(state);
+				}
 			}
 			break;
 		case 0x1: // DLM or IER
@@ -552,10 +596,10 @@ lpc2300_timer_write(ARMul_State *state, ARMword addr, ARMword data,int i)
 	switch (addr & 0xfe) {
 		case 0x00:
 			if(data & io.timer[i].ir & 0x3f) {
-				io.vic.RawIntr &= ~IRQTIMER(i);	/* clear Timer interrupt */
+				io.vic.INTSOURCE &= ~IRQTIMER(i);	/* clear Timer interrupt */
 				io.timer[i].ir = 0;				/* clear int bit */
 			}
-			lpc2300_update_int(state);
+			if (io.vic.IntEnable & IRQTIMER(i)) lpc2300_update_int(state);
 			break;
 		case 0x04:
 			io.timer[i].tcr = data;
@@ -634,8 +678,8 @@ ARMword lpc2300_io_read_word(ARMul_State *state, ARMword addr)
 		lpc2300_update_int(state);
 		break;
 	case 0xfffff024: /* Software Priority Mask Reg */
-		data = io.vic.VICSWPrioMask ;
-		DBG_PRINT("read VICSWPrioMask\n");
+		data = io.vic.SWPrioMask ;
+		DBG_PRINT("read SWPrioMask\n");
 		break;
 	case 0xffffff00: /* VICVectAddr */
 		data = io.vic.Vect_Addr ;
@@ -853,7 +897,7 @@ void lpc2300_io_write_halfword(ARMul_State *state, ARMword addr, ARMword data)
 
 void lpc2300_io_write_word(ARMul_State *state, ARMword addr, ARMword data)
 {
-  	int i, mask, nIRQNum, nHighestIRQ;
+  	signed int i, nIRQNum, nHighestPrio;
 	ARMword ofs;
 
 	/*
@@ -915,10 +959,21 @@ void lpc2300_io_write_word(ARMul_State *state, ARMword addr, ARMword data)
 			io.vic.FIQStatus = 0;
 			break;
 		}
-		if (io.vic.last_irq_no >= 0) {
-			io.vic.IRQStatus &= ~BITMSK(io.vic.last_irq_no);
-			io.vic.RawIntr &= ~BITMSK(io.vic.last_irq_no);
-			switch (io.vic.last_irq_no) {
+		/* Search the highest priority of the active IRQ */
+		nHighestPrio = 16;
+		for (i=0 ; i<16 ; i++) {
+			if ( !(io.vic.HWPrioMask & BITMSK(i)) ) {
+				nHighestPrio = i;
+				break;
+			}
+		}
+		/* Clear the appropriate IRQ */
+		if (nHighestPrio < 16) {
+			io.vic.HWPrioMask |= BITMSK(nHighestPrio);
+			nIRQNum = io.vic.IRQNumber[nHighestPrio];
+/*			io.vic.IRQStatus &= ~BITMSK(nIRQNum); */
+			io.vic.INTSOURCE &= ~BITMSK(nIRQNum);
+			switch (nIRQNum) {
 			  case 6: /* Reset UART0 IIR Bit */
 				io.uart[0].iir = (io.uart[0].iir & ~0xf) | 0x1;
 				break;
@@ -928,12 +983,12 @@ void lpc2300_io_write_word(ARMul_State *state, ARMword addr, ARMword data)
 			  default:
 				break;
 			}
-			io.vic.last_irq_no = -1;
+//fprintf(stderr,"prio:%d, irq:%d, HWmask:%08x\n",nHighestPrio,nIRQNum,io.vic.HWPrioMask);fflush(stderr);
 			lpc2300_update_int(state);
 		}
 		break;
 	case 0xfffff024: /* DVAR */
-		io.vic.VICSWPrioMask = data;
+		io.vic.SWPrioMask = data;
 		break;
 
 	/*pll*/
