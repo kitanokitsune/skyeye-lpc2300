@@ -27,6 +27,7 @@
  * 04/09/2018 	Bug fix: Some program goes into infinite loop when UART polling.
  * 04/16/2018 	Improve VIC Interrupt
  * 04/19/2018 	Improve UART Tx interrupt timing
+ * 04/20/2018 	Bug fix: FIQ priority should be higher than IRQ
  * */
 
 #ifdef __WIN32__
@@ -260,14 +261,16 @@ static void lpc2300_update_int(ARMul_State *state)
 		}
 	}
 
+	state->NirqSig = io.vic.IRQStatus ? LOW:HIGH;
+
 	/* calculate H/W priority mask and set IRQ signal */
-	if (NextIRQ >= 0 && ServicingPrio < 16) {
+	if (io.vic.FIQStatus) {
+		state->NirqSig = HIGH;
+	} else if (NextIRQ >= 0 && ServicingPrio < 16) {
 		io.vic.HWPrioMask &= ~BITMSK(ServicingPrio);
 		io.vic.IRQNumber[ServicingPrio] = NextIRQ;
 		io.vic.Vect_Addr = io.vic.VectAddr[NextIRQ];
 		state->NirqSig = LOW;
-	} else {
-		state->NirqSig = HIGH;
 	}
 
 

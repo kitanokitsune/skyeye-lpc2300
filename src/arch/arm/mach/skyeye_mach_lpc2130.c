@@ -26,6 +26,7 @@
  * 04/14/2018 	Add VICDefVectAddr support
  * 04/16/2018 	Improve VIC Interrupt
  * 04/19/2018 	Improve UART Tx interrupt timing
+ * 04/20/2018 	Bug fix: FIQ priority should be higher than IRQ
  * */
 
 #ifdef __WIN32__
@@ -247,13 +248,15 @@ static void lpc2130_update_int(ARMul_State *state)
 		}
 	}
 
-	if (slot_no >= 0) {
-		io.vic.Vect_Addr = io.vic.VectAddr[slot_no];
-	} else { /* if no slot responds */
+	state->NirqSig = io.vic.IRQStatus ? LOW:HIGH;
+
+	if (io.vic.FIQStatus) {
+		state->NirqSig = HIGH;
 		io.vic.Vect_Addr = io.vic.DefVectAddr;
+	} else if (slot_no >= 0) {
+		io.vic.Vect_Addr = io.vic.VectAddr[slot_no];
 	}
 
-	state->NirqSig = io.vic.IRQStatus ? LOW:HIGH; 
 
 #if 0
 	fprintf(stderr, "\n** lpc2130_update_int **\t#%ld\n",state->NumInstrs);
