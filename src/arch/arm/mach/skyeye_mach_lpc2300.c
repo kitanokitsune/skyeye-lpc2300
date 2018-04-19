@@ -26,6 +26,7 @@
  *            	Fix wrong access to some registers
  * 04/09/2018 	Bug fix: Some program goes into infinite loop when UART polling.
  * 04/16/2018 	Improve VIC Interrupt
+ * 04/19/2018 	Improve UART Tx interrupt timing
  * */
 
 #ifdef __WIN32__
@@ -87,8 +88,10 @@ typedef struct uart
 	ARMword scr;
 	ARMword dll;
 	ARMword dlm;
-	char t_fifo[16];
-	char r_fifo[16];
+	unsigned char t_fifo[16];
+	unsigned char r_fifo[16];
+	signed char t_fifolen;
+	signed char t_fifotop;
 } lpc2300_uart_t;
 
 typedef struct pll
@@ -165,6 +168,60 @@ static lpc2300_io_t lpc2300_io;
 #define io lpc2300_io
 #define IRQTIMER(i)		(1<<(i<2 ? i+4 : i+24))
 #define IRQUART(i)		(1<<(i<2 ? i+6 : i+26))
+#define TxFIFO_len(i)  io.uart[i].t_fifolen
+#define TxFIFO_top(i)  io.uart[i].t_fifotop
+
+static int TxFIFO_enq(int i, unsigned char c)
+{
+	if (TxFIFO_len(i) >= 16) return 0;
+
+	io.uart[i].t_fifo[(TxFIFO_top(i)+TxFIFO_len(i)) & 0xf] = c;
+	TxFIFO_len(i)++;
+
+	return -1;
+}
+static unsigned char TxFIFO_deq(int i)
+{
+	unsigned char c;
+
+	c = io.uart[i].t_fifo[TxFIFO_top(i)];
+	if (TxFIFO_len(i) > 0) {
+		TxFIFO_len(i)--;
+		TxFIFO_top(i) = (TxFIFO_top(i) + 1) & 0xf;
+	}
+	return c;
+}
+static int lpc2300_uart_transmit(int i)
+{
+	int n, res;
+	unsigned char c;
+
+	n = TxFIFO_len(i);
+
+	/* Enqueue THR if valid data is available */
+	if ( (n<16) && !(io.uart[i].lsr & 0x20) ) {
+		if (TxFIFO_enq(i, io.uart[i].thr)) {
+			io.uart[i].lsr |= 0x20;
+			n++;
+		}
+	}
+
+	/* Send a fifo data to uart */
+	res = 0;
+	if (n>0) {
+		c = io.uart[i].t_fifo[TxFIFO_top(i)];
+		if (skyeye_uart_write(i, &c, 1, NULL) > 0) {
+			TxFIFO_deq(i);
+			if (TxFIFO_len(i) == 0 && (io.uart[i].lsr & 0x20)) {
+				io.uart[i].lsr |= 0x40;
+				res = -1;
+			}
+		}
+	}
+
+	return res; /* return TRUE if both fifo & THR are empty */
+}
+
 
 static void lpc2300_update_int(ARMul_State *state)
 {
@@ -272,6 +329,8 @@ static void lpc2300_io_reset(ARMul_State *state)
 		io.uart[i].dlm = 0;
 		io.uart[i].lsr = 0x60;
 		io.uart[i].iir = 0x01;
+		io.uart[i].t_fifotop = 0;
+		io.uart[i].t_fifolen = 0;
 	}
 
 	/* PINSELn : 0xE002C000 + 4*n */
@@ -391,11 +450,14 @@ void lpc2300_io_do_cycle(ARMul_State *state)
 					io.vic.INTSOURCE |= IRQUART(i);
 				}
 				lpc2300_update_int(state);
-			} else if ((uartcnt == i+UART_INT_CYCLE/2) && (io.uart[i].ier & 0x2)) {		/* Tx Interrupt */
-				io.uart[i].lsr |= 0x60;
-				io.uart[i].iir = (io.uart[i].iir & ~0xf) | 0x2;
-				io.vic.INTSOURCE |= IRQUART(i);
-				lpc2300_update_int(state);
+			} else if (uartcnt == i+UART_INT_CYCLE/2) {
+				if (lpc2300_uart_transmit(i)) {
+					if (io.uart[i].ier & 0x2) {		/* Tx Interrupt */
+						io.uart[i].iir = (io.uart[i].iir & ~0xf) | 0x2;
+						io.vic.INTSOURCE |= IRQUART(i);
+						lpc2300_update_int(state);
+					}
+				}
 			}
 		} //else if(!(io.vic.IntEnable & IRQUART(i)) && !(io.uart[i].lsr & 0x1)) {		/* UART Polling */
 //			tv.tv_sec = 0;
@@ -507,14 +569,18 @@ lpc2300_uart_write(ARMul_State *state, ARMword addr, ARMword data,int i)
 				io.uart[i].dll = data;
 			} else {						/* THR if DLAB=0 */
 				unsigned char c = data & 0xff;
+				io.uart[i].thr = c;
 
-				skyeye_uart_write(i, &c, 1, NULL);
-
-				io.uart[i].lsr |= 0x60; /* indicate U1THR and U1TSR are empty */
-				io.vic.INTSOURCE &= ~IRQUART(i);
-				if ((io.vic.IntEnable & IRQUART(i)) && ((io.uart[i].iir & 0xf) == 0x2)) { /* reset interrupt if IIR[3:0]=0010 */
-					io.uart[i].iir = (io.uart[i].iir & ~0xe) | 0x1;
-					lpc2300_update_int(state);
+				if (!(io.uart[i].ier & 0x2)) {
+					skyeye_uart_write(i, &c, 1, NULL);
+					io.uart[i].lsr |= 0x20; /* indicate UnTHR is empty */
+				} else {
+					io.vic.INTSOURCE &= ~IRQUART(i);
+					io.uart[i].lsr &= ~0x20; /* indicate UnTHR is not empty */
+					if ((io.vic.IntEnable & IRQUART(i)) && ((io.uart[i].iir & 0xf) == 0x2)) { /* reset interrupt if IIR[3:0]=0010 */
+						io.uart[i].iir = (io.uart[i].iir & ~0xe) | 0x1;
+						lpc2300_update_int(state);
+					}
 				}
 			}
 			break;
