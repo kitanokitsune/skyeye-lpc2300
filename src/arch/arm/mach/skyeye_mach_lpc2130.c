@@ -28,6 +28,7 @@
  * 04/19/2018 	Improve UART Tx interrupt timing
  * 04/20/2018 	Bug fix: FIQ priority should be higher than IRQ
  * 04/21/2018 	Enhance timer acceleration
+ * 04/21/2018 	Bug Fix: GPIO write/set/clear function
  * */
 
 #ifdef __WIN32__
@@ -1110,9 +1111,20 @@ void lpc2130_io_write_word(ARMul_State *state, ARMword addr, ARMword data)
 			}
 			if ((ofs & 0x1f)>=0x14 && (ofs & 0x1f)<0x18) {
 				io.FIO[ofs] = (data & ~io.FIO[ofs-4]) | (io.FIO[ofs] & io.FIO[ofs-4]);
+			} else if ((ofs & 0x1f)>=0x1c && (ofs & 0x1f)<0x20) {
+				io.FIO[ofs] = (~data | io.FIO[ofs-4]) & io.FIO[ofs];
 			} else {
 				io.FIO[ofs] = data;
 			}
+#if 1		/* Show LED state on Optimize EZ-ARM7 mini board */
+			if (ofs == 0x14 || ofs == 0x18 || ofs == 0x1c) {
+				if (~io.FIO[ofs] & io.FIO[0x00] & 0x80000000) {
+					fprintf(stderr, "Optimize mini EZ-ARM7: P0[31] LED On  @ %lld\n", state->NumInstrs);
+				} else {
+					fprintf(stderr, "Optimize mini EZ-ARM7: P0[31] LED Off @ %lld\n", state->NumInstrs);
+				}
+			}
+#endif
 			break;
 		}
 		/*Pin Select Control*/
