@@ -28,6 +28,7 @@
  * 04/16/2018 	Improve VIC Interrupt
  * 04/19/2018 	Improve UART Tx interrupt timing
  * 04/20/2018 	Bug fix: FIQ priority should be higher than IRQ
+ * 04/21/2018 	Enhance timer acceleration
  * */
 
 #ifdef __WIN32__
@@ -158,9 +159,6 @@ typedef struct lpc2300_io {
 	/*mam accelerator module*/
 	ARMword		mamcr;
 	ARMword		mamtim;
-#ifdef __WIN32__
-	__int64		lasttimertick;
-#endif
 
 } lpc2300_io_t;
 
@@ -287,12 +285,35 @@ static void lpc2300_update_int(ARMul_State *state)
 	fflush(stderr);
 #endif
 }
+
+#ifdef __WIN32__
+static LONG MeasurePeriodNanoSec(BOOL init)
+{
+    static LARGE_INTEGER last_t, freq;
+    static BOOL valid = FALSE;
+    LARGE_INTEGER current, tmp;
+
+    if (init) {
+        if( !QueryPerformanceFrequency(&freq) ) return 0L;
+        if( !QueryPerformanceCounter(&last_t) ) return 0L;
+        valid = TRUE;
+    }
+
+    if (valid) {
+        if( !QueryPerformanceCounter(&current) ) return 0L;
+        tmp = last_t;
+        last_t = current;
+        return (LONG)((1000000000LL*(current.QuadPart - tmp.QuadPart)) / freq.QuadPart);
+    }
+
+    return 0L;
+}
+#endif
+
 static void lpc2300_io_reset(ARMul_State *state)
 {
 	int i,j;
-#ifdef __WIN32__
-	__int64 wintime;
-#endif
+
 	for (i=0 ; i<4 ; i++) {
 		io.timer[i].pr = 0;
 		io.timer[i].ir = 0;
@@ -359,10 +380,10 @@ static void lpc2300_io_reset(ARMul_State *state)
 	state->NfiqSig = HIGH;  /* disable FIQ */
 //	state->Cpsr = 0x93;
 #ifdef __WIN32__
-	GetSystemTimeAsFileTime((FILETIME*)&wintime);
-    io.lasttimertick = wintime;
+	MeasurePeriodNanoSec(TRUE);
 #endif
 }
+
 
 #define UART_INT_CYCLE (128)
 
@@ -376,10 +397,9 @@ void lpc2300_io_do_cycle(ARMul_State *state)
 	unsigned char buf;
 
 #if defined(__WIN32__) && 1		/* accelerate timer */
-	__int64 tns;
-	GetSystemTimeAsFileTime((FILETIME*)&tns);
-    t = 1 + (15*(ARMword)(tns - io.lasttimertick))/10;	/* speed up TC step */
-	io.lasttimertick = tns;
+	LONG tns;
+	tns = MeasurePeriodNanoSec(FALSE) >> 6;
+    t = 1 + tns;				/* speed up TC step */
 	for (i=0 ; i<4 && t>1 ; i++) {	/* adjust TC step in order to match MRn */
 		if( (i==0) && !(io.pconp & (1<<1)) ) continue;
 		if( (i==1) && !(io.pconp & (1<<2)) ) continue;
