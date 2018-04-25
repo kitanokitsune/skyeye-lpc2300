@@ -16,6 +16,9 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.  */
 
+#ifdef __WIN32__
+#include <windows.h>
+#endif
 #include "armdefs.h"
 #include "armemu.h"
 #include "armos.h"
@@ -349,7 +352,11 @@ ARMul_Emulate26 (ARMul_State * state)
 	ARMword decoded_addr=0;
 	ARMword loaded_addr=0;
 	ARMword have_bp=0;
-        static unsigned remote_interrupt_test_time=0;
+#ifdef __WIN32__
+	DWORD current_time;
+	static DWORD last_time = 0;
+#endif
+	static unsigned remote_interrupt_test_time=0;
 	/* Execute the next instruction.  */
 
 	if (state->NextInstr < PRIMEPIPE) {
@@ -362,6 +369,15 @@ ARMul_Emulate26 (ARMul_State * state)
 	}
 
 	do {
+#ifdef __WIN32__
+		/* flush stdio/stderr buffers periodically */
+		current_time = timeGetTime();
+		if (current_time-last_time > 500) {
+			last_time = current_time;
+			fflush(stdout);
+			fflush(stderr);
+		}
+#endif
 		/* Just keep going.  */
 		isize = INSN_SIZE;
 
