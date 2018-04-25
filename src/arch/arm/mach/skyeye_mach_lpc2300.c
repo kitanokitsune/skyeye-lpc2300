@@ -33,7 +33,7 @@
  * */
 
 #ifdef __WIN32__
-#include <windows.h>   /* for GetSystemTimeAsFileTime() */
+#include <windows.h>   /* for QueryPerformanceCounter() */
 #endif
 
 #include "armdefs.h"
