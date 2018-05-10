@@ -38,3 +38,6 @@ GNU GPL v2
 
 ## Known Issue
 KEILのサンプル __*Interrupt-Driven UART I/O for Philips LPC23xx*__ は動作することを確認していますが、他のプログラムで動かないものも確認されています。おそらくモード切り替え（特にモード USR -> IRQ -> SVC という遷移）に絡むCPSR/SPSRの動作がおかしいようです。
+
+---
+kitanokitsune / 北乃きつね
